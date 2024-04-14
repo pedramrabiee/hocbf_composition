@@ -1,4 +1,5 @@
-Higher-Order Barrier Function Composition Library
+·· Higher-Order Barrier Function Composition Library
+
 This library provides a set of classes and utilities for working with barrier functions and higher-order barrier functions (HOCBFs) in the context of control systems and optimization problems.
 
 Key Classes
