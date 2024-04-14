@@ -36,12 +36,6 @@ class AffineInControlDynamics:
         """
         raise NotImplementedError
 
-    def mj_state_to_state(self, mj_state):
-        raise NotImplementedError
-
-    def state_to_mj_data_and_qpos(self, next_state, mj_state, data):
-        raise NotImplementedError
-
     def rhs(self, x, action):
         action = vectorize_tensors(action)
         x = vectorize_tensors(x)
