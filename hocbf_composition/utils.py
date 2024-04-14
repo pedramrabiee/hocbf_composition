@@ -10,14 +10,14 @@ def make_circle_barrier_functional(center, radius):
 
 
 def make_rectangular_barrier_functional(center, rotation, size, p=20):
-    # TODO: add rotation
     size, center = vectorize_tensors(size).to(torch.float64), vectorize_tensors(center).to(torch.float64)
-    return lambda x: torch.norm((rotate_tensors(points=vectorize_tensors(x), center=center, angle_rad=-rotation) - center)/ size, p=p, dim=-1) - 1
+    return lambda x: torch.norm((rotate_tensors(points=vectorize_tensors(x), center=center, angle_rad=-rotation) - center) / size, p=p, dim=-1) - 1
 
 
 def make_box_barrier_functionals(bounds, idx):
     lb, ub = bounds
-    return [lambda x: x[..., idx] - lb, lambda x: ub - x[..., idx]]
+    # TODO: test dimensions
+    return [lambda x: vectorize_tensors(x)[..., idx] - lb, lambda x: ub - vectorize_tensors(x)[..., idx]]
 
 
 def vectorize_tensors(arr):
