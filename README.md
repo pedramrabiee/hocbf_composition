@@ -4,22 +4,30 @@ This library provides a set of classes and utilities for working with barrier fu
 
 
 Key Classes
-`Barrier`
+### `Barrier`
 The Barrier class is the core of this library. It allows you to:
 
-Assign a barrier function and its relative degree.
-Assign the system dynamics to the barrier.
-Compute the barrier function, the highest-order barrier function (HOCBF), and their Lie derivatives.
-Retrieve information about the barrier, such as the relative degree and the list of barrier functions.
+1. Assign a barrier function and its relative degree.
+2. Assign the system dynamics to the barrier.
+3. Compute the barrier function, the highest-order barrier function (HOCBF), and their Lie derivatives.
+4. Retrieve information about the barrier, such as the relative degree and the list of barrier functions.
+
 Methods
+
 `assign(barrier_func, rel_deg=1, alphas=None)`: Assigns the barrier function and its relative degree.
+
 `assign_dynamics(dynamics)`: Assigns the system dynamics to the barrier and generates the higher-order barrier functions.
+
 `h(x)`: Computes the barrier function for the given state x.
+
 `hocbf(x)`: Computes the highest-order barrier function for the given state x.
+
 `Lf_hocbf(x)`: Computes the Lie derivative of the HOCBF with respect to the system dynamics f.
+
 `Lg_hocbf(x)`: Computes the Lie derivative of the HOCBF with respect to the system dynamics g.
 
-CompositionBarrier
+### `CompositionBarrier`
+
 The CompositionBarrier class is a subclass of Barrier that allows you to compose multiple barriers using a specific composition rule.
 
 Methods
