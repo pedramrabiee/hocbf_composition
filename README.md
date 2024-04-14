@@ -31,23 +31,30 @@ Methods
 The CompositionBarrier class is a subclass of Barrier that allows you to compose multiple barriers using a specific composition rule.
 
 Methods
+
 `assign_barriers_and_rule(barriers, rule)`: Assigns a list of Barrier objects and a composition rule to the CompositionBarrier object.
+
 `h(x)`: Evaluates the barrier functions at given x.
+
 `hocbf(x)`: Computes the composed highest-order barrier function for the given state x.
 
-SoftCompositionBarrier
+
+### `SoftCompositionBarrier`
+
 The SoftCompositionBarrier class is a subclass of CompositionBarrier that implements soft composition rules, such as the union and intersection operations using softmax and softmin functions.
 
-NonSmoothCompositionBarrier
+### NonSmoothCompositionBarrier
+
 The NonSmoothCompositionBarrier class is a subclass of CompositionBarrier that implements non-smooth composition rules, such as the union and intersection operations using the maximum and minimum functions.
 
-Utility Functions
-make_barrier_from_barrier(barrier, rel_deg=1): Constructs a new Barrier object using the highest-order barrier of the input Barrier object and assigns the same dynamics. The existing barriers are also appended to the new barrier.
-Usage Example
-python
+### Utility Functions
+
+`make_barrier_from_barrier(barrier, rel_deg=1)`: Constructs a new Barrier object using the highest-order barrier of the input Barrier object and assigns the same dynamics. The existing barriers are also appended to the new barrier.
 
 
-Copy code
+### Usage Example
+```python
+
 # Create a Barrier object
 barrier = Barrier().assign(barrier_func=h, rel_deg=2, alphas=[alpha1, alpha2])
 barrier.assign_dynamics(dynamics)
@@ -65,3 +72,4 @@ composition_barrier = SoftCompositionBarrier().assign_barriers_and_rule(barriers
 # Compute the composed barrier function and HOCBF
 composed_barrier_value = composition_barrier.h(x)
 composed_hocbf_value = composition_barrier.hocbf(x)
+```
