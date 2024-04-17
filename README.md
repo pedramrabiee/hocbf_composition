@@ -61,4 +61,30 @@ composition_barrier = SoftCompositionBarrier().assign_barriers_and_rule(barriers
 composed_barrier_value = composition_barrier.barrier(x)
 composed_hocbf_value = composition_barrier.hocbf(x)
 ```
-![Example Image](hocbf_composition/examples/contour_plot_2024-04-17_13-42-01.png)
+
+## Unicycle Example
+
+The Unicycle example demonstrates the use of higher-order composition barrier functions for safe control of a unicycle robot navigating through obstacles to reach predefined goal locations.
+
+
+Example code snippet:
+
+```python
+from hocbf_composition.examples.unicycle_dynamics import UnicycleDynamics
+from hocbf_composition.make_map import Map
+
+# Instantiate dynamics
+dynamics = UnicycleDynamics(state_dim=4, action_dim=2)
+
+# Define barrier function configurations and dynamics parameters
+
+# Create a Map object
+map = Map(barriers_info=barriers_info, dynamics=dynamics, cfg=cfg)
+
+# Simulate the unicycle's trajectory
+# Add simulation code here
+
+![Trajectory Plots](hocbf_composition/examples/contour_plot_2024-04-17_13-42-01.png)
+![Time history](hocbf_composition/examples/combined_plot_2024-04-17_13-42-01.png)
+
+
