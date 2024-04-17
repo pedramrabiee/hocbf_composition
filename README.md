@@ -61,3 +61,4 @@ composition_barrier = SoftCompositionBarrier().assign_barriers_and_rule(barriers
 composed_barrier_value = composition_barrier.barrier(x)
 composed_hocbf_value = composition_barrier.hocbf(x)
 ```
+![Example Image](hocbf_composition/examples/contour_plot_2024-04-17_13-42-01.png)
