@@ -85,7 +85,7 @@ map = Map(barriers_info=barriers_info, dynamics=dynamics, cfg=cfg)
 # Add simulation code here
 ```
 
-<div style="display: flex; flex-direction: row; justify-content: space-between;">
-  <img src="hocbf_composition/examples/contour_plot_2024-04-17_13-42-01.png" alt="Trajectory Plot" width="45%">
-  <img src="hocbf_composition/examples/combined_plot_2024-04-17_13-42-01.png" alt="Time History" width="45%">
+<div style="display: flex; flex-direction: column; align-items: center;">
+  <img src="hocbf_composition/examples/contour_plot_2024-04-17_13-42-01.png" alt="Trajectory Plot" width="70%">
+  <img src="hocbf_composition/examples/combined_plot_2024-04-17_13-42-01.png" alt="Time History" width="70%">
 </div>
