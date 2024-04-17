@@ -1,7 +1,5 @@
 ## Higher-Order Barrier Function Composition Library
 
-This library provides a set of classes and utilities for working with barrier functions and higher-order barrier functions (HOCBFs) in the context of control systems and optimization problems.
-
 This repository provides implementations of barrier functions and higher-order composition barrier functions for control and safety in dynamical systems. It includes classes for basic barrier functions, composition of barrier functions, soft composition, and non-smooth composition.
 
 ## Barrier Class
