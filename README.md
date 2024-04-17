@@ -84,5 +84,11 @@ map = Map(barriers_info=barriers_info, dynamics=dynamics, cfg=cfg)
 # Simulate the unicycle's trajectory
 # Add simulation code here
 ```
+
+<div style="display: flex; flex-direction: row; justify-content: space-between;">
+  <img src="hocbf_composition/examples/contour_plot_2024-04-17_13-42-01.png" alt="Trajectory Plot" width="45%">
+  <img src="hocbf_composition/examples/combined_plot_2024-04-17_13-42-01.png" alt="Time History" width="45%">
+</div>
+
 ![Trajectory Plots](hocbf_composition/examples/contour_plot_2024-04-17_13-42-01.png)
 ![Time history](hocbf_composition/examples/combined_plot_2024-04-17_13-42-01.png)
