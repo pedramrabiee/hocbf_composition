@@ -76,12 +76,9 @@ from hocbf_composition.make_map import Map
 # Instantiate dynamics
 dynamics = UnicycleDynamics(state_dim=4, action_dim=2)
 
-# Define barrier function configurations and dynamics parameters
-
-# Create a Map object
+# Define barrier function configurations and dynamics parameters and create a Map object
 map = Map(barriers_info=barriers_info, dynamics=dynamics, cfg=cfg)
 
 # Simulate the unicycle's trajectory
-# Add simulation code here
 ```
 ![Trajectory Plots](hocbf_composition/examples/contour_plot_2024-04-17_13-42-01.png)
