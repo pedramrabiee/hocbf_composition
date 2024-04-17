@@ -53,6 +53,7 @@ The NonSmoothCompositionBarrier class is a subclass of CompositionBarrier that i
 
 
 ### Usage Example
+
 ```python
 
 # Create a Barrier object
@@ -60,7 +61,7 @@ barrier = Barrier().assign(barrier_func=h, rel_deg=2, alphas=[alpha1, alpha2])
 barrier.assign_dynamics(dynamics)
 
 # Compute the barrier function, HOCBF, and their Lie derivatives
-barrier_value = barrier.h(x)
+barrier_value = barrier.barrier(x)
 hocbf_value = barrier.hocbf(x)
 Lf_hocbf = barrier.Lf_hocbf(x)
 Lg_hocbf = barrier.Lg_hocbf(x)
@@ -70,6 +71,6 @@ barriers = [barrier1, barrier2, barrier3]
 composition_barrier = SoftCompositionBarrier().assign_barriers_and_rule(barriers, 'union')
 
 # Compute the composed barrier function and HOCBF
-composed_barrier_value = composition_barrier.h(x)
+composed_barrier_value = composition_barrier.barrier(x)
 composed_hocbf_value = composition_barrier.hocbf(x)
 ```

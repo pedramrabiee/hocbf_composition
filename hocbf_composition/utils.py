@@ -13,11 +13,18 @@ def make_rectangular_barrier_functional(center, rotation, size, p=20):
     size, center = vectorize_tensors(size).to(torch.float64), vectorize_tensors(center).to(torch.float64)
     return lambda x: torch.norm((rotate_tensors(points=vectorize_tensors(x), center=center, angle_rad=-rotation) - center) / size, p=p, dim=-1) - 1
 
+def make_rectangular_boundary_functional(center, rotation, size, p=20):
+    return lambda x: -make_rectangular_barrier_functional(center, rotation, size, p)(x)
+
 
 def make_box_barrier_functionals(bounds, idx):
     lb, ub = bounds
     # TODO: test dimensions
     return [lambda x: vectorize_tensors(x)[..., idx] - lb, lambda x: ub - vectorize_tensors(x)[..., idx]]
+
+
+def make_linear_alpha_function_form_list_of_coef(coef_list):
+    return [lambda x: c * x for c in coef_list]
 
 
 def vectorize_tensors(arr):
@@ -93,3 +100,7 @@ def apply_and_match_dim(func, x):
         return res.view(-1, 1)
 
     return res
+
+
+
+

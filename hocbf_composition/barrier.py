@@ -1,7 +1,5 @@
 from typing import List
 from hocbf_composition.utils import *
-# import torch.jit
-
 
 class Barrier:
     def __init__(self, cfg=None):
@@ -16,6 +14,8 @@ class Barrier:
         self._barriers = None
         self._hocbf = None
         self._rel_deg = None
+        self._hocbf_func = None
+        self._alphas = None
 
     def assign(self, barrier_func, rel_deg=1, alphas=None):
         """
@@ -30,13 +30,10 @@ class Barrier:
         - self: Updated Barrier object.
         """
         assert callable(barrier_func), "barrier_func must be a callable function"
-        if rel_deg > 1:
-            if alphas is None:
-                alphas = [lambda x: x for _ in range(rel_deg)]
-            assert isinstance(alphas, list) and len(alphas) == rel_deg and callable(alphas[0]),\
-                "alphas must be a list with length equal to rel_deg of callable functions "
+        alphas = self._handle_alphas(alphas=alphas, rel_deg=rel_deg)
 
-        # Assign barrier function definition
+        # Assign barrier function definition: self._barrier_func is the main constraint that the
+        # higher-order cbf is defined based on
         self._barrier_func = barrier_func
         self._rel_deg = rel_deg
         self._alphas = alphas
@@ -54,13 +51,28 @@ class Barrier:
 
         self._dynamics = dynamics
         # make higher-order barrier function
-        self._barriers = self._get_hocbf_series(h=self.h, rel_deg=self._rel_deg, alphas=self._alphas)
+        self._barriers = self._make_hocbf_series(barrier=self.barrier, rel_deg=self._rel_deg, alphas=self._alphas)
         self._hocbf_func = self._barriers[-1]
         return self
 
-    def h(self, x):
+    def raise_rel_deg(self, x, raise_rel_deg_by=1, alphas=None):
         """
-        Compute the barrier function h(x) for a given state x.
+        This method takes the current hocbf and make a new hocbf with the relative degree raised
+        by `raise_rel_deg_by`. The new hocbf has the relative degree of old rel_deg + raise_rel_deg_by
+        """
+
+        alphas = self._handle_alphas(alphas=alphas, rel_deg=raise_rel_deg_by)
+        self._alphas.append(alphas)
+        self._rel_deg += raise_rel_deg_by
+
+        self._barriers.append(*self._make_hocbf_series(barrier=self._hocbf_func,
+                                                       rel_deg=raise_rel_deg_by,
+                                                       alphas=alphas))
+        self._hocbf_func = self._barriers[-1]
+
+    def barrier(self, x):
+        """
+        Compute the barrier function barrier(x) for a given state x.
         """
         return apply_and_batchize(self._barrier_func, x)
 
@@ -82,7 +94,20 @@ class Barrier:
         """
         return lie_deriv(x, self.hocbf, self._dynamics.g)
 
+    def compute_barriers_at(self, x):
+        """
+        Compute barrier values at a given state x.
+        """
+        return [apply_and_batchize(func=barrier, x=x) for barrier in self.barriers_flatten]
+
+    def get_min_barrier_at(self, x):
+        """
+        Get the minimum barrier value at a given state x.
+        """
+        return torch.min(torch.hstack(self.compute_barriers_at(x)), dim=-1).values.unsqueeze(-1)
+
     # Getters
+
     @property
     def rel_deg(self):
         """
@@ -93,9 +118,17 @@ class Barrier:
     @property
     def barriers(self):
         """
-         Get the list of barrier functions.
+         Get the list of barrier functions of all relative degrees upto self.rel_deg
         """
         return self._barriers
+
+    @property
+    def barriers_flatten(self):
+        """
+             Get the flatten list of barrier functions of all relative degrees. This method has application mainly
+             in the composite barrier function class
+        """
+        return self.barriers
 
     @property
     def dynamics(self):
@@ -105,44 +138,31 @@ class Barrier:
         return self._dynamics
 
     # Helper methods
-    def _get_hocbf_series(self, h, rel_deg, alphas):
+
+    def _make_hocbf_series(self, barrier, rel_deg, alphas):
         """
               Generate a series of higher-order barrier functions.
 
               Parameters:
-              - h: Initial barrier function.
+              - barrier: Initial barrier function.
               - rel_deg: Relative degree of the barrier.
               - alphas: List of class-K functions.
 
           """
-        ans = [h]
+        ans = [barrier]
         for i in range(rel_deg - 1):
             hocbf_i = lambda x, hocbf=ans[i], f=self._dynamics.f, alpha=alphas[i]: \
                 lie_deriv(x, hocbf, f) + apply_and_batchize(func=alpha, x=hocbf(x))
             ans.append(hocbf_i)
         return ans
 
-    def compute_barriers_at(self, x):
-        """
-        Compute barrier values at a given state x.
-        """
-        return [apply_and_batchize(func=barrier, x=x) for barrier in self._barriers]
-
-    def get_min_barrier_at(self, x):
-        """
-        Get the minimum barrier value at a given state x.
-        """
-        return torch.min(torch.hstack(self.compute_barriers_at(x)), dim=-1).values.unsqueeze(-1)
-
-    def append_to_barriers(self, barriers):
-        """
-        Append additional barriers to the existing list.
-
-        This method is particularly useful when creating a new barrier based on an existing one.
-        It allows you to incorporate the barriers of the original barrier into the new one.
-        """
-        # Push barriers from the left
-        self._barriers = [*barriers, *self._barriers]
+    def _handle_alphas(self, alphas, rel_deg):
+        if rel_deg > 1:
+            if alphas is None:
+                alphas = [lambda x: x for _ in range(rel_deg)]
+            assert isinstance(alphas, list) and len(alphas) == rel_deg and callable(alphas[0]), \
+                "alphas must be a list with length equal to rel_deg of callable functions "
+        return alphas
 
 
 class CompositionBarrier(Barrier):
@@ -165,6 +185,7 @@ class CompositionBarrier(Barrier):
         """
         raise 'For the CompositionBarrier class, dynamics are inferred from the barriers after calling the assign_barriers_and_rule method'
 
+    # @torch.jit.script
     def assign_barriers_and_rule(self, barriers: List[Barrier], rule: str):
         """
         Assign multiple barriers and a composition rule to the CompositionBarrier object.
@@ -178,28 +199,50 @@ class CompositionBarrier(Barrier):
         """
         # Infer dynamics from the barriers
         self._dynamics = barriers[0].dynamics
+        self._rel_deg = 1
 
         # Define barrier functions and higher-order barrier function as compositions of individual barrier functions
         self._barrier_func = None
-        self._barrier_funcs = lambda x: torch.hstack([barrier.h(x) for barrier in barriers])
-        # self._barrier_func = lambda x: self.compose(rule)(torch.hstack([barrier.h(x) for barrier in barriers]))
+        self._barrier_funcs = lambda x: torch.hstack([barrier.barrier(x) for barrier in barriers])
         self._hocbf_func = lambda x: self.compose(rule)(torch.hstack([barrier.hocbf(x) for barrier in barriers]))
 
-        # Concatenate individual barriers into a single list
-        self._barriers = []
-        for barrier in barriers:
-            self._barriers += barrier.barriers
+        # Concatenate barrier.barriers for all barrier in barriers. This makes a list of lists.
+        self._barriers = [barrier.barriers for barrier in barriers]
 
         # Append the higher-order composite barrier function to the list of barriers
-        self._barriers.append(self._hocbf_func)
+        self._barriers.append([self._hocbf_func])
 
         return self
 
-    def h(self, x):
+    def raise_rel_deg(self, x, raise_rel_deg_by=1, alphas=None):
         """
-        Compute the barrier function h(x) for a given state x.
+        This method takes the current hocbf and make a new hocbf with the relative degree raised
+        by `raise_rel_deg_by`. The new hocbf has the relative degree of old rel_deg + raise_rel_deg_by
+        """
+
+        alphas = self._handle_alphas(alphas=alphas, rel_deg=raise_rel_deg_by)
+        self._alphas.append(alphas)
+        self._rel_deg += raise_rel_deg_by
+        new_barriers = self._make_hocbf_series(barrier=self._hocbf_func,
+                                               rel_deg=raise_rel_deg_by,
+                                               alphas=alphas)
+
+        self._hocbf_func = new_barriers[-1]
+        self._barriers.append(new_barriers)
+
+    def barrier(self, x):
+        """
+        Compute main barrier value at x. Main barrier value is the barrier which defines all the
+         higher order cbfs involved in the composite barrier function expression.
+         This method returns a horizontally stacked torch tensor of the value of barriers at x.
         """
         return apply_and_batchize(self._barrier_funcs, x)
+
+    def min_barrier(self, x):
+        """
+        Calculate the minimum value among all the barrier values computed at point x.
+        """
+        return torch.min(self.barrier(x), dim=-1).values.unsqueeze(-1)
 
     def compose(self, c_key: str):
         """
@@ -227,12 +270,17 @@ class CompositionBarrier(Barrier):
         """
         raise NotImplementedError
 
+    @property
+    def barriers_flatten(self):
+        return [b for barrier in self._barriers for b in barrier]
+
 
 class SoftCompositionBarrier(CompositionBarrier):
     """
     SoftCompositionBarrier class, inherits from CompositionBarrier.
     This class represents a soft composition of multiple barriers with specific soft composition rules.
     """
+
     def union_rule(self, x):
         return apply_and_match_dim(lambda y: softmax(y, rho=self.cfg.softmax_rho, dim=-1), x)
 
@@ -245,28 +293,9 @@ class NonSmoothCompositionBarrier(CompositionBarrier):
     NonSmoothCompositionBarrier class, inherits from CompositionBarrier.
     This class represents a non-smooth composition of multiple barriers with specific non-smooth composition rules.
     """
+
     def union_rule(self, x):
         return apply_and_match_dim(lambda y: torch.max(y, dim=-1).values, x)
 
     def intersection_rule(self, x):
         return apply_and_match_dim(lambda y: torch.min(y, dim=-1).values, x)
-
-
-def make_barrier_from_barrier(barrier, rel_deg=1):
-    """
-        Create a new barrier based on an existing barrier.
-
-        This method constructs a new Barrier object using the highest-order barrier of the
-        input barrier and assigns the same dynamics. The existing barriers are also appended
-        to the new barrier.
-
-        Parameters:
-        - barrier: Existing Barrier object.
-        - rel_deg: Relative degree of the new barrier.
-
-        Returns:
-        - new_barrier: New Barrier object with the specified relative degree and composed of the input barrier's components.
-    """
-    new_barrier = Barrier().assign(barrier_func=barrier.hocbf, rel_deg=rel_deg).assign_dynamics(barrier.dynamics)
-    new_barrier.append_to_barriers(barrier.barriers)
-    return new_barrier
