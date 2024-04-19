@@ -24,15 +24,15 @@ class AffineInControlDynamics:
 
     def _f(self, x):
         """
-        x: batch size x state dim
-        output: batch size x state dim
+        x: batch size x trajs dim
+        output: batch size x trajs dim
         """
         raise NotImplementedError
 
     def _g(self, x):
         """
         x: batch size x state_dim
-        output: batch size x state dim x action dim
+        output: batch size x trajs dim x action dim
         """
         raise NotImplementedError
 
@@ -40,3 +40,13 @@ class AffineInControlDynamics:
         action = vectorize_tensors(action)
         x = vectorize_tensors(x)
         return self.f(x) + torch.bmm(self.g(x), action.unsqueeze(-1)).squeeze(-1)
+
+    @property
+    def state_dim(self):
+        return self._state_dim
+
+    @property
+    def action_dim(self):
+        return self._action_dim
+
+

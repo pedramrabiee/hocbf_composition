@@ -72,15 +72,18 @@ class Barrier:
 
     def barrier(self, x):
         """
-        Compute the barrier function barrier(x) for a given state x.
+        Compute the barrier function barrier(x) for a given trajs x.
         """
         return apply_and_batchize(self._barrier_func, x)
 
     def hocbf(self, x):
         """
-        Compute the highest-order barrier function hocbf(x) for a given state x.
+        Compute the highest-order barrier function hocbf(x) for a given trajs x.
         """
         return apply_and_batchize(self._hocbf_func, x)
+
+    def get_hocbf_and_lie_derivs(self, x):
+        return self.hocbf(x), self.Lf_hocbf(x), self.Lg_hocbf(x)
 
     def Lf_hocbf(self, x):
         """
@@ -96,13 +99,13 @@ class Barrier:
 
     def compute_barriers_at(self, x):
         """
-        Compute barrier values at a given state x.
+        Compute barrier values at a given trajs x.
         """
         return [apply_and_batchize(func=barrier, x=x) for barrier in self.barriers_flatten]
 
     def get_min_barrier_at(self, x):
         """
-        Get the minimum barrier value at a given state x.
+        Get the minimum barrier value at a given trajs x.
         """
         return torch.min(torch.hstack(self.compute_barriers_at(x)), dim=-1).values.unsqueeze(-1)
 
