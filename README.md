@@ -79,4 +79,4 @@ map = Map(barriers_info=barriers_info, dynamics=dynamics, cfg=cfg)
 
 # Simulate the unicycle's trajectory
 ```
-![Trajectory Plots](hocbf_composition/examples/contour_plot_2024-04-17_13-42-01.png)
+![Trajectory Plots](hocbf_composition/examples/contour_plot_unicycle.png)
