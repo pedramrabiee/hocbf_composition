@@ -2,7 +2,7 @@
 
 This repository provides implementations of barrier functions and higher-order composition barrier functions for control and safety in dynamical systems. It includes classes for basic barrier functions, composition of barrier functions, soft composition, and non-smooth composition.
 
-## Barrier Class
+### Barrier Class
 
 The `Barrier` class represents a basic barrier function with methods for assigning barrier functions, dynamics, and computing barrier values.
 
@@ -16,7 +16,7 @@ The `Barrier` class represents a basic barrier function with methods for assigni
 - `compute_barriers_at(x)`: Computes barrier values at a given state.
 - `get_min_barrier_at(x)`: Gets the minimum barrier value at a given state.
 
-## CompositionBarrier Class
+### CompositionBarrier Class
 
 The `CompositionBarrier` class extends the `Barrier` class and represents a barrier formed by composing multiple barriers with a specific rule.
 
@@ -24,16 +24,16 @@ The `CompositionBarrier` class extends the `Barrier` class and represents a barr
 - `min_barrier(x)`: Calculates the minimum value among all the barrier values computed at a point.
 - `compose(c_key)`: Selects the appropriate composition rule based on the provided key.
 
-## SoftCompositionBarrier Class
+### SoftCompositionBarrier Class
 
 The `SoftCompositionBarrier` class extends the `CompositionBarrier` class and represents a soft composition of multiple barriers with specific soft composition rules.
 
-## NonSmoothCompositionBarrier Class
+### NonSmoothCompositionBarrier Class
 
 The `NonSmoothCompositionBarrier` class extends the `CompositionBarrier` class and represents a non-smooth composition of multiple barriers with specific non-smooth composition rules.
 
 
-## ClosedFormSafetyFilter Class
+### ClosedFormSafetyFilter Class
 
 The `ClosedFormSafetyFilter` class implements a safety filter for closed-form optimal control. It allows for safe control of dynamical systems by incorporating barrier functions and Lie derivatives.
 
@@ -44,13 +44,13 @@ The `ClosedFormSafetyFilter` class implements a safety filter for closed-form op
 - `get_safe_optimal_trajs(x0, timestep, sim_time, method)`: Simulates the system trajectory under safe optimal control.
 - `eval_barrier(x)`: Evaluates the barrier function at a given state.
 
-## MinInterventionSafetyFilter Class
+### MinInterventionSafetyFilter Class
 
 The `MinInterventionSafetyFilter` class extends the `ClosedFormSafetyFilter` and automatically assigns the cost function for minimizing intervention during control. It provides methods for assigning desired control actions.
 
 - `assign_desired_control(desired_control)`: Assigns the desired control action for the system.
 
-## InputConstrainedClosedFormSafetyFilter Class
+### InputConstrainedClosedFormSafetyFilter Class
 
 The `InputConstrainedClosedFormSafetyFilter` class extends the `ClosedFormSafetyFilter` and incorporates input constraints into the safety filtering process. It provides methods for assigning state and action dynamics, as well as action barriers.
 
@@ -58,7 +58,7 @@ The `InputConstrainedClosedFormSafetyFilter` class extends the `ClosedFormSafety
 - `assign_state_barrier(barrier)`: Assigns a state barrier to the safety filter.
 - `assign_action_barrier(action_barrier, rel_deg)`: Assigns an action barrier and its relative degree.
 
-## MinInterventionInputConstrainedClosedFormSafetyFilter Class
+### MinInterventionInputConstrainedClosedFormSafetyFilter Class
 
 The `MinInterventionInputConstrainedClosedFormSafetyFilter` class extends the `InputConstrainedClosedFormSafetyFilter` and automatically assigns the desired control action while considering input constraints.
 
@@ -90,7 +90,7 @@ composed_hocbf_value = composition_barrier.hocbf(x)
 
 
 
-## Unicycle Example
+### Unicycle Example
 
 The Unicycle example demonstrates the use of higher-order composition barrier functions for safe control of a unicycle robot navigating through obstacles to reach predefined goal locations.
 
