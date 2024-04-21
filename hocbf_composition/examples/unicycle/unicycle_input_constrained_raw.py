@@ -3,7 +3,7 @@ from hocbf_composition.examples.unicycle.map_config import map_config
 from hocbf_composition.examples.unicycle.unicycle_dynamics import UnicycleDynamics
 from hocbf_composition.dynamics import LowPassFilterDynamics
 from hocbf_composition.barrier import Barrier
-from hocbf_composition.closed_form_safety_filter import MinIntervInputConstCFSafeControl
+from hocbf_composition.closed_form_safety_filter import MinIntervInputConstCFSafeControlRaw
 from hocbf_composition.utils import *
 from attrdict import AttrDict as AD
 from functools import partial
@@ -49,7 +49,7 @@ ac_barriers = [Barrier().assign(barrier_func=ac_barrier, rel_deg=1).assign_dynam
                ac_barriers_funcs]
 
 # Make input constrained safety filter, assign state and action dynamics, assign state and action barriers
-safety_filter = MinIntervInputConstCFSafeControl(
+safety_filter = MinIntervInputConstCFSafeControlRaw(
     action_dim=state_dynamics.action_dim,
     alpha=lambda x: 1.0 * x,
     params=AD(slack_gain=100,
@@ -67,6 +67,7 @@ goal_pos = torch.tensor([
     [3.0, 4.5],
     [-7.0, 0.0],
     [7.0, 1.5],
+    [-1.0, 7.0]
 ])
 
 # Initial Conditions
@@ -132,7 +133,7 @@ for i in range(goal_pos.shape[0]):
 # plt.grid(True)
 plt.gca().set_aspect('equal', adjustable='box')
 # Save the contour plot
-plt.savefig(f'contour_plot_input_constrained_{current_time}.png')
+plt.savefig(f'contour_plot_input_constrained_raw_{current_time}.png')
 plt.show()
 
 # Calculate time array based on the number of data points and timestep
@@ -185,7 +186,7 @@ for ax in axs:
 
 # Adjust layout and save the combined plot
 plt.tight_layout()
-plt.savefig(f'combined_plot_input_constrained_{current_time}.png')
+plt.savefig(f'combined_plot_input_constrained_raw_{current_time}.png')
 
 # Show the plots
 plt.show()

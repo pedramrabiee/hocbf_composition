@@ -7,7 +7,11 @@ from torchdiffeq import odeint
 from hocbf_composition.barrier import SoftCompositionBarrier, NonSmoothCompositionBarrier
 
 
-class ClosedFormSafetyFilter:
+class CFSafeControl:
+    """
+    Closed-Form-Safe Control
+    """
+
     def __init__(self, action_dim, alpha=None, params=None):
         self._action_dim = action_dim
         self._alpha = alpha if alpha is not None else lambda x: x
@@ -62,7 +66,13 @@ class ClosedFormSafetyFilter:
         return self._barrier.hocbf(x)
 
 
-class MinInterventionSafetyFilter(ClosedFormSafetyFilter):
+class MinIntervCFSafeControl(CFSafeControl):
+    """
+    Minimum-Intervention-Closed-Form-Safe Control: This class inherits from CFSafeControl and introduces
+    a minimum intervention cost approach. Rather than explicitly assigning cost matrices Q and c,
+     this class directly works with the assinged desired control.
+    """
+
     def assign_cost(self, Q, c):
         raise ('Use assign_desired_control to assign desired control.'
                ' The min intervention cost is automatically assigned.')
@@ -72,7 +82,11 @@ class MinInterventionSafetyFilter(ClosedFormSafetyFilter):
         self._c = lambda x: -2 * desired_control(x)
 
 
-class InputConstrainedClosedFormSafetyFilter(ClosedFormSafetyFilter):
+class InputConstCFSafeControl(CFSafeControl):
+    """
+    Input-Constrained-Closed-Form-Safe Control
+    """
+
     def __init__(self, action_dim, alpha=None, params=None):
         super().__init__(action_dim, alpha, params)
         self._dynamics = None
@@ -110,7 +124,7 @@ class InputConstrainedClosedFormSafetyFilter(ClosedFormSafetyFilter):
         self._make_composed_barrier()
 
         # make auxiliary desired action
-        self._aux_desired_action = self._make_aux_desired_action()
+        self._make_aux_desired_action()
         return self
 
     def safe_optimal_control(self, x):
@@ -158,14 +172,17 @@ class InputConstrainedClosedFormSafetyFilter(ClosedFormSafetyFilter):
 
         ac_out_Lg = lambda x: torch.inverse(lie_deriv(x, func=ac_out_func_lie_derivs[-2], field=self._dynamics.g))
 
-        return lambda x: torch.einsum('bmn, bm->bn', ac_out_Lg(x),
-                                      torch.stack([sigma * (dc(x) - of(x)) for dc, of, sigma in
-                                                   zip(desired_control_lie_derivs, ac_out_func_lie_derivs,
-                                                       self._params.sigma)]).sum(0))
+        self._aux_desired_action = lambda x: torch.einsum('bmn, bm->bn', ac_out_Lg(x),
+                                                          torch.stack([sigma * (dc(x) - of(x)) for dc, of, sigma in
+                                                                       zip(desired_control_lie_derivs,
+                                                                           ac_out_func_lie_derivs,
+                                                                           self._params.sigma)]).sum(0))
+
     def _make_desired_control(self):
         self._desired_control = lambda x: -torch.einsum('bij,bi->bj',
                                                         torch.inverse(self._Q(x[:, :self._state_dyn.state_dim])),
                                                         self._c(x[:, :self._state_dyn.state_dim]))
+
     def _make_augmented_dynamics(self):
         assert (self._state_dyn.action_dim == self._ac_dyn.action_dim), \
             ('Dimension mismatch')
@@ -187,11 +204,30 @@ class InputConstrainedClosedFormSafetyFilter(ClosedFormSafetyFilter):
 
         self._dynamics.set_g(aug_g)
 
-class MinInterventionInputConstrainedClosedFormSafetyFilter(InputConstrainedClosedFormSafetyFilter):
+
+class MinIntervInputConstCFSafeControl(InputConstCFSafeControl):
     def assign_desired_control(self, desired_control):
         self._desired_control = desired_control
         self.make()
         return self
 
     def _make_desired_control(self):
+        pass
+
+
+class MinIntervInputConstCFSafeControlRaw(InputConstCFSafeControl):
+    """
+    This class considers the desired control as the auxiliary desired control.
+    """
+
+    def assign_desired_control(self, desired_control):
+        self._desired_control = desired_control
+        self._aux_desired_action = desired_control
+        self.make()
+        return self
+
+    def _make_desired_control(self):
+        pass
+
+    def _make_aux_desired_action(self):
         pass

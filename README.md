@@ -33,9 +33,9 @@ The `SoftCompositionBarrier` class extends the `CompositionBarrier` class and re
 The `NonSmoothCompositionBarrier` class extends the `CompositionBarrier` class and represents a non-smooth composition of multiple barriers with specific non-smooth composition rules.
 
 
-### ClosedFormSafetyFilter Class
+### CFSafeControl Class
 
-The `ClosedFormSafetyFilter` class implements a safety filter for closed-form optimal control. It allows for safe control of dynamical systems by incorporating barrier functions and Lie derivatives.
+The `CFSafeControl` class implements a safety filter for closed-form optimal control. It allows for safe control of dynamical systems by incorporating barrier functions and Lie derivatives.
 
 - `assign_state_barrier(barrier)`: Assigns a state barrier to the safety filter.
 - `assign_dynamics(dynamics)`: Assigns system dynamics to the safety filter.
@@ -44,23 +44,23 @@ The `ClosedFormSafetyFilter` class implements a safety filter for closed-form op
 - `get_safe_optimal_trajs(x0, timestep, sim_time, method)`: Simulates the system trajectory under safe optimal control.
 - `eval_barrier(x)`: Evaluates the barrier function at a given state.
 
-### MinInterventionSafetyFilter Class
+### MinIntervCFSafeControl Class
 
-The `MinInterventionSafetyFilter` class extends the `ClosedFormSafetyFilter` and automatically assigns the cost function for minimizing intervention during control. It provides methods for assigning desired control actions.
+The `MinIntervCFSafeControl` class extends the `CFSafeControl` and automatically assigns the cost function for minimizing intervention during control. It provides methods for assigning desired control actions.
 
 - `assign_desired_control(desired_control)`: Assigns the desired control action for the system.
 
-### InputConstrainedClosedFormSafetyFilter Class
+### InputConstCFSafeControl Class
 
-The `InputConstrainedClosedFormSafetyFilter` class extends the `ClosedFormSafetyFilter` and incorporates input constraints into the safety filtering process. It provides methods for assigning state and action dynamics, as well as action barriers.
+The `InputConstCFSafeControl` class extends the `CFSafeControl` and incorporates input constraints into the safety filtering process. It provides methods for assigning state and action dynamics, as well as action barriers.
 
 - `assign_state_action_dynamics(state_dynamics, action_dynamics, action_output_function)`: Assigns both state and action dynamics along with an action output function.
 - `assign_state_barrier(barrier)`: Assigns a state barrier to the safety filter.
 - `assign_action_barrier(action_barrier, rel_deg)`: Assigns an action barrier and its relative degree.
 
-### MinInterventionInputConstrainedClosedFormSafetyFilter Class
+### MinIntervInputConstCFSafeControl Class
 
-The `MinInterventionInputConstrainedClosedFormSafetyFilter` class extends the `InputConstrainedClosedFormSafetyFilter` and automatically assigns the desired control action while considering input constraints.
+The `MinIntervInputConstCFSafeControl` class extends the `InputConstCFSafeControl` and automatically assigns the desired control action while considering input constraints.
 
 - `assign_desired_control(desired_control)`: Assigns the desired control action for the system.
 

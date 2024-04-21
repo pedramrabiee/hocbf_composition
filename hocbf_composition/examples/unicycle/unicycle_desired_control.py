@@ -15,9 +15,4 @@ def desired_control(x, goal_pos):
            k1 * (k2 * dist_to_goal + v) * torch.sin(psi) ** 2)
 
     ud2 = torch.where(dist_to_goal > 0.1, (k2 + v / dist_to_goal) * torch.sin(psi), 0.0)
-    # if dist_to_goal > 0.1:
-    #     ud2 = (k2 + v / dist_to_goal) * torch.sin(psi)
-    # else:
-    #     ud2 = torch.zeros(x.shape[0])
-
     return torch.hstack([ud1.unsqueeze(-1), ud2.unsqueeze(-1)])

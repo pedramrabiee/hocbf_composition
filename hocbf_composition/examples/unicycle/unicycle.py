@@ -6,7 +6,7 @@ from math import pi
 from hocbf_composition.utils import *
 from hocbf_composition.examples.unicycle.unicycle_dynamics import UnicycleDynamics
 from hocbf_composition.make_map import Map
-from hocbf_composition.closed_form_safety_filter import MinInterventionSafetyFilter
+from hocbf_composition.closed_form_safety_filter import MinIntervCFSafeControl
 from hocbf_composition.examples.unicycle.map_config import map_config
 from hocbf_composition.examples.unicycle.unicycle_desired_control import desired_control
 from time import time
@@ -34,7 +34,7 @@ dynamics = UnicycleDynamics(state_dim=4, action_dim=2)
 map_ = Map(barriers_info=map_config, dynamics=dynamics, cfg=cfg)
 
 # Make safety filter and assign dynamics and barrier
-safety_filter = MinInterventionSafetyFilter(
+safety_filter = MinIntervCFSafeControl(
     action_dim=dynamics.action_dim,
     alpha=lambda x: 0.5 * x,
     params=AD(slack_gain=1e24,
@@ -48,7 +48,8 @@ goal_pos = torch.tensor([
     [3.0, 4.5],
     [-7.0, 0.0],
     [7.0, 1.5],
-    [-1.0, 7.0]])
+    [-1.0, 7.0]
+])
 
 # Initial Conditions
 x0 = torch.tensor([-1.0, -8.5, 0.0, pi / 2]).repeat(goal_pos.shape[0], 1)
