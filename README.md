@@ -68,7 +68,7 @@ The Unicycle example demonstrates the use of higher-order composition barrier fu
 Example code snippet:
 
 ```python
-from hocbf_composition.examples.unicycle_dynamics import UnicycleDynamics
+from hocbf_composition.examples.unicycle.unicycle_dynamics import UnicycleDynamics
 from hocbf_composition.make_map import Map
 
 # Instantiate dynamics
@@ -79,4 +79,4 @@ map = Map(barriers_info=barriers_info, dynamics=dynamics, cfg=cfg)
 
 # Simulate the unicycle's trajectory
 ```
-![Trajectory Plots](hocbf_composition/examples/contour_plot_unicycle.png)
+![Trajectory Plots](hocbf_composition/examples/unicycle/contour_plot_unicycle.png)
