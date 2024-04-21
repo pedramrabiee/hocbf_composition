@@ -11,7 +11,10 @@ def make_circle_barrier_functional(center, radius):
 
 def make_rectangular_barrier_functional(center, rotation, size, p=20):
     size, center = vectorize_tensors(size).to(torch.float64), vectorize_tensors(center).to(torch.float64)
-    return lambda x: torch.norm((rotate_tensors(points=vectorize_tensors(x), center=center, angle_rad=-rotation) - center) / size, p=p, dim=-1) - 1
+    return lambda x: torch.norm(
+        (rotate_tensors(points=vectorize_tensors(x), center=center, angle_rad=-rotation) - center) / size, p=p,
+        dim=-1) - 1
+
 
 def make_rectangular_boundary_functional(center, rotation, size, p=20):
     return lambda x: -make_rectangular_barrier_functional(center, rotation, size, p)(x)
@@ -24,7 +27,7 @@ def make_box_barrier_functionals(bounds, idx):
 
 
 def make_linear_alpha_function_form_list_of_coef(coef_list):
-    return [lambda x: c * x for c in coef_list]
+    return [(lambda x, c=c: c * x) for c in coef_list]
 
 
 def vectorize_tensors(arr):
@@ -56,30 +59,42 @@ def softmin(x, rho, conservative=False, dim=0):
 
 def softmax(x, rho, conservative=True, dim=0):
     res = 1 / rho * torch.logsumexp(rho * x, dim=dim)
-    return res - np.log(x.size(dim))/rho if conservative else res
+    return res - np.log(x.size(dim)) / rho if conservative else res
 
 
 def lie_deriv(x, func, field):
     x = vectorize_tensors(x)
     grad_req = x.requires_grad
     x.requires_grad_()
-    func_val = func(x)
-    # Ensure that h_val is a scalar for each element in the batch
-    func_val = func_val.sum()
-    func_deriv = grad(func_val, x)[0]
+    func_val = func(x).sum(0)
+    func_deriv = [grad(fval, x, retain_graph=True)[0] for fval in func_val]
     x.requires_grad_(requires_grad=grad_req)
     field_val = field(x)
 
-    assert field_val.ndim == 2 or field_val.ndim == 3, 'Dimension mismatch'
+    assert field_val.ndim == 2 or field_val.ndim == 3, 'Field dimension is not accpeted'
+
     if field_val.ndim == 2:
-        return torch.einsum('bn,bn->b', func_deriv, field_val).unsqueeze(1)
+        return torch.cat([torch.einsum('bn,bn->b', fderiv, field_val).unsqueeze(1) for fderiv in func_deriv], dim=1)
 
     if field_val.ndim == 3:
-        return torch.einsum('bn,bnm->bm', func_deriv, field_val)
+        return torch.einsum('rbn,bnm->brm', torch.stack(func_deriv), field_val).squeeze(1)
+
+
+def make_higher_order_lie_deriv_series(func, field, deg):
+    """
+          Generate a series of higher-order lie derivative..
+
+          Parameters:
+
+      """
+    ans = [func]
+    for i in range(deg):
+        holie_i = lambda x, holie=ans[i], f=field: lie_deriv(x, holie, f)
+        ans.append(holie_i)
+    return ans
 
 
 def rotate_tensors(points, center, angle_rad):
-
     # Perform rotation
     rotation_matrix = torch.tensor([[math.cos(angle_rad), -math.sin(angle_rad)],
                                     [math.sin(angle_rad), math.cos(angle_rad)]], dtype=torch.float64)
@@ -100,7 +115,3 @@ def apply_and_match_dim(func, x):
         return res.view(-1, 1)
 
     return res
-
-
-
-

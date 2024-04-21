@@ -1,6 +1,7 @@
 from typing import List
 from hocbf_composition.utils import *
 
+
 class Barrier:
     def __init__(self, cfg=None):
         """
@@ -9,6 +10,7 @@ class Barrier:
         Parameters:
         - cfg (optional): Configuration parameters.
         """
+        self._dynamics = None
         self.cfg = cfg
         self._barrier_func = None
         self._barriers = None
@@ -162,9 +164,9 @@ class Barrier:
     def _handle_alphas(self, alphas, rel_deg):
         if rel_deg > 1:
             if alphas is None:
-                alphas = [lambda x: x for _ in range(rel_deg)]
-            assert isinstance(alphas, list) and len(alphas) == rel_deg and callable(alphas[0]), \
-                "alphas must be a list with length equal to rel_deg of callable functions "
+                alphas = [(lambda x: x) for _ in range(rel_deg - 1)]
+            assert isinstance(alphas, list) and len(alphas) == rel_deg - 1 and callable(alphas[0]), \
+                "alphas must be a list with length equal to (rel_deg - 1) of callable functions "
         return alphas
 
 
@@ -183,13 +185,13 @@ class CompositionBarrier(Barrier):
 
     def assign_dynamics(self, dynamics):
         """
-        Override the assign_dynamics method to raise an error.
-        Dynamics are inferred from the barriers after calling the assign_barriers_and_rule method.
+        Assign dynamics
         """
-        raise 'For the CompositionBarrier class, dynamics are inferred from the barriers after calling the assign_barriers_and_rule method'
+        self._dynamics = dynamics
+        return self
 
     # @torch.jit.script
-    def assign_barriers_and_rule(self, barriers: List[Barrier], rule: str):
+    def assign_barriers_and_rule(self, barriers: List[Barrier], rule: str, infer_dynamics: bool = False):
         """
         Assign multiple barriers and a composition rule to the CompositionBarrier object.
 
@@ -201,7 +203,15 @@ class CompositionBarrier(Barrier):
             - self: Updated CompositionBarrier object.
         """
         # Infer dynamics from the barriers
-        self._dynamics = barriers[0].dynamics
+        if infer_dynamics:
+            if self._dynamics is not None:
+                raise Warning('The assinged dynamics is overriden by the dynamics of the'
+                              ' first barrier on the barriers list')
+            self._dynamics = barriers[0].dynamics
+        elif self._dynamics is None:
+            raise ('Dynamics should be assigned. Use infer_dynamics=True to take the dynamics of'
+                   ' the first barrier as the dynamics of the composition barrier')
+
         self._rel_deg = 1
 
         # Define barrier functions and higher-order barrier function as compositions of individual barrier functions

@@ -14,7 +14,12 @@ class Map:
         self.pos_barriers = self.make_position_barrier_from_map()
         self.vel_barriers = self.make_velocity_barrier()
         self.barrier = SoftCompositionBarrier(
-            cfg=self.cfg).assign_barriers_and_rule(barriers=[*self.pos_barriers, *self.vel_barriers], rule='i')
+            cfg=self.cfg).assign_barriers_and_rule(barriers=[*self.pos_barriers, *self.vel_barriers],
+                                                   rule='i',
+                                                   infer_dynamics=True)
+
+    def get_barriers(self):
+        return self.pos_barriers, self.vel_barriers
 
     def make_position_barrier_from_map(self):
         geoms = self.barriers_info.geoms
@@ -40,13 +45,12 @@ class Map:
         return barriers
 
     def make_velocity_barrier(self):
-        barriers = []
         alphas = make_linear_alpha_function_form_list_of_coef(self.cfg.velocity_alpha)
-        for idx, bounds in self.barriers_info.velocity:
-            vel_barriers = make_box_barrier_functionals(bounds=bounds, idx=idx)
-            barriers = [Barrier().assign(
-                barrier_func=vel_barrier,
-                rel_deg=self.cfg.vel_barrier_rel_deg,
-                alphas=alphas).assign_dynamics(self.dynamics) for vel_barrier in vel_barriers]
+        idx, bounds = self.barriers_info.velocity
+        vel_barriers = make_box_barrier_functionals(bounds=bounds, idx=idx)
+        barriers = [Barrier().assign(
+            barrier_func=vel_barrier,
+            rel_deg=self.cfg.vel_barrier_rel_deg,
+            alphas=alphas).assign_dynamics(self.dynamics) for vel_barrier in vel_barriers]
 
         return barriers

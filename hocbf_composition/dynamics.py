@@ -1,10 +1,12 @@
 import torch
 from hocbf_composition.utils import vectorize_tensors
 
+
 class AffineInControlDynamics:
-    def __init__(self, state_dim, action_dim):
+    def __init__(self, state_dim, action_dim, params=None):
         self._state_dim = state_dim
         self._action_dim = action_dim
+        self._params = params
 
     def f(self, x):
         x = vectorize_tensors(x)
@@ -41,6 +43,16 @@ class AffineInControlDynamics:
         x = vectorize_tensors(x)
         return self.f(x) + torch.bmm(self.g(x), action.unsqueeze(-1)).squeeze(-1)
 
+    def set_f(self, f):
+        if not callable(f):
+            raise TypeError("_f must be a callable function")
+        self._f = f
+
+    def set_g(self, g):
+        if not callable(g):
+            raise TypeError("_g must be a callable function")
+        self._g = g
+
     @property
     def state_dim(self):
         return self._state_dim
@@ -50,3 +62,19 @@ class AffineInControlDynamics:
         return self._action_dim
 
 
+class LowPassFilterDynamics(AffineInControlDynamics):
+    def __init__(self, state_dim, action_dim, params):
+        assert state_dim == action_dim, 'state_dim and action_dim should be the same'
+        super().__init__(state_dim, action_dim, params)
+        assert params is not None, 'params should include low pass filter gains'
+        assert len(params['gains']) == state_dim, 'gains should be a list of gains of length state_dim'
+
+        self._gains = torch.tensor(params['gains'])
+        self._gains_mat = torch.diag(self._gains)
+        self._gains.unsqueeze_(0)
+
+    def _f(self, x):
+        return -self._gains * x
+
+    def _g(self, x):
+        return self._gains_mat.repeat(x.shape[0], 1, 1)
