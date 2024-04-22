@@ -71,7 +71,7 @@ def lie_deriv(x, func, field):
     x.requires_grad_(requires_grad=grad_req)
     field_val = field(x)
 
-    assert field_val.ndim == 2 or field_val.ndim == 3, 'Field dimension is not accpeted'
+    assert field_val.ndim in {2, 3}, 'Field dimension is not accepted'
 
     if field_val.ndim == 2:
         return torch.cat([torch.einsum('bn,bn->b', fderiv, field_val).unsqueeze(1) for fderiv in func_deriv], dim=1)

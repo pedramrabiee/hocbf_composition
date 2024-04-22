@@ -27,14 +27,14 @@ class AffineInControlDynamics:
     def _f(self, x):
         """
         x: batch size x trajs dim
-        output: batch size x trajs dim
+        output: batch size x state_dim
         """
         raise NotImplementedError
 
     def _g(self, x):
         """
         x: batch size x state_dim
-        output: batch size x trajs dim x action dim
+        output: batch size x state_dim x action_dim
         """
         raise NotImplementedError
 
