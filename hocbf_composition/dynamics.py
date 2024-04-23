@@ -3,7 +3,7 @@ from hocbf_composition.utils import vectorize_tensors
 
 
 class AffineInControlDynamics:
-    def __init__(self, state_dim, action_dim, params=None):
+    def __init__(self, state_dim, action_dim, params=None, **kwargs):
         self._state_dim = state_dim
         self._action_dim = action_dim
         self._params = params
