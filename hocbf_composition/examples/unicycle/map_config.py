@@ -12,5 +12,4 @@ map_config = dict(
         ('boundary', AD(center=[0.0, 0.0], size=[10.0, 10.0], rotation=0.0)),
     ),
     velocity=(2, [-1.0, 9.0]),
-
 )
