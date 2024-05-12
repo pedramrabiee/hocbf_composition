@@ -11,6 +11,7 @@ from hocbf_composition.examples.unicycle.map_config import map_config
 from hocbf_composition.examples.unicycle.unicycle_desired_control import desired_control
 from time import time
 import datetime
+import matplotlib.pyplot as plt
 
 mpl.rcParams['text.usetex'] = True
 mpl.rcParams['font.family'] = 'Times'
@@ -42,7 +43,6 @@ safety_filter = MinIntervCFSafeControl(
               softplus_gain=2.0)
 ).assign_dynamics(dynamics=dynamics).assign_state_barrier(barrier=map_.barrier)
 
-
 # Goal positions
 goal_pos = torch.tensor([
     [3.0, 4.5],
@@ -53,7 +53,7 @@ goal_pos = torch.tensor([
 
 # Initial Conditions
 x0 = torch.tensor([-1.0, -8.5, 0.0, pi / 2]).repeat(goal_pos.shape[0], 1)
-timestep = 0.001
+timestep = 0.05
 sim_time = 8.0
 
 # assign desired control based on the goal positions
@@ -63,7 +63,7 @@ safety_filter.assign_desired_control(
 
 # Simulate trajectories
 start_time = time()
-trajs = safety_filter.get_safe_optimal_trajs(x0=x0, sim_time=sim_time, timestep=timestep)
+trajs = safety_filter.get_safe_optimal_trajs(x0=x0, sim_time=sim_time, timestep=timestep, method='euler')
 print(time() - start_time)
 
 # Rearrange trajs

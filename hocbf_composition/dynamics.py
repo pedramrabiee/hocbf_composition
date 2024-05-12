@@ -39,9 +39,32 @@ class AffineInControlDynamics:
         raise NotImplementedError
 
     def rhs(self, x, action):
+        """
+        Right-hand-side of dynamics
+        """
         action = vectorize_tensors(action)
         x = vectorize_tensors(x)
         return self.f(x) + torch.bmm(self.g(x), action.unsqueeze(-1)).squeeze(-1)
+
+    def rhs_zoh(self, t, x, action_func, timestep):
+        """
+        This function simulate the zero-order-hold dynamics,
+         by calling the action function at each timestep, and hold it during the timestep
+        """
+        if t == 0.0:
+            self._last_action_time = 0.0
+            self._last_action = None  # Initialize as None
+
+        # Adjust the time for alignment with the ZOH timestep
+        t_adjusted = timestep * (t // timestep)
+
+        # Check if we need to recalculate the action
+        if t_adjusted != self._last_action_time or self._last_action is None:
+            self._last_action_time = t_adjusted
+            self._last_action = action_func(x)
+
+        # Apply the ZOH dynamics using the last calculated action
+        return self.rhs(x, self._last_action)
 
     def set_f(self, f):
         if not callable(f):

@@ -1,4 +1,4 @@
-from hocbf_composition.utils import tensify, make_higher_order_lie_deriv_series, lie_deriv
+from hocbf_composition.utils import *
 import torch
 from torch.nn.functional import softplus, relu
 from attrdict import AttrDict
@@ -57,10 +57,16 @@ class CFSafeControl:
         return u
 
     def get_safe_optimal_trajs(self, x0, timestep=0.001, sim_time=4.0, method='dopri5'):
-        return odeint(func=lambda t, y: self._dynamics.rhs(y, self.safe_optimal_control(y)),
-                      y0=x0,
-                      t=torch.linspace(0.0, sim_time, int(sim_time / timestep) + 1),
-                      method=method).detach()
+        return get_trajs_from_action_func(x0=x0, dynamics=self._dynamics,
+                                          action_func=self.safe_optimal_control,
+                                          timestep=timestep, sim_time=sim_time,
+                                          method=method)
+
+    def get_safe_optimal_trajs_zoh(self, x0, timestep=0.001, sim_time=4.0, method='dopri5'):
+        return get_trajs_from_action_func_zoh(x0=x0, dynamics=self._dynamics,
+                                              action_func=self.safe_optimal_control,
+                                              timestep=timestep, sim_time=sim_time,
+                                              method=method)
 
     def eval_barrier(self, x):
         return self._barrier.hocbf(x)

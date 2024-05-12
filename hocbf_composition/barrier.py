@@ -142,6 +142,10 @@ class Barrier:
         """
         return self._dynamics
 
+    @property
+    def num_barriers(self):
+        return len(self.barriers_flatten)
+
     # Helper methods
 
     def _make_hocbf_series(self, barrier, rel_deg, alphas):
