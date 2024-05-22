@@ -84,7 +84,7 @@ class MinIntervCFSafeControl(CFSafeControl):
                ' The min intervention cost is automatically assigned.')
 
     def assign_desired_control(self, desired_control):
-        self._Q = lambda x: torch.eye(self._action_dim, dtype=torch.float64).repeat(x.shape[0], 1, 1)
+        self._Q = lambda x: 2 * torch.eye(self._action_dim, dtype=torch.float64).repeat(x.shape[0], 1, 1)
         self._c = lambda x: -2 * desired_control(x)
 
 

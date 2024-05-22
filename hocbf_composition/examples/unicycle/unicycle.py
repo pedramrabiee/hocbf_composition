@@ -54,7 +54,7 @@ goal_pos = torch.tensor([
 # Initial Conditions
 x0 = torch.tensor([-1.0, -8.5, 0.0, pi / 2]).repeat(goal_pos.shape[0], 1)
 timestep = 0.05
-sim_time = 8.0
+sim_time = 12.0
 
 # assign desired control based on the goal positions
 safety_filter.assign_desired_control(
