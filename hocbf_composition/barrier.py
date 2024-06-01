@@ -85,6 +85,19 @@ class Barrier:
         return apply_and_batchize(self._hocbf_func, x)
 
     def get_hocbf_and_lie_derivs(self, x):
+        x = vectorize_tensors(x)
+        grad_req = x.requires_grad
+        x.requires_grad_()
+        hocbf = self.hocbf(x)
+        func_val = hocbf.sum(0)
+        hocbf_deriv = [grad(fval, x, retain_graph=True)[0] for fval in func_val]
+        x.requires_grad_(requires_grad=grad_req)
+        Lf_hocbf = lie_deriv_from_values(x, hocbf_deriv, self._dynamics.f(x))
+        Lg_hocbf = lie_deriv_from_values(x, hocbf_deriv, self._dynamics.g(x))
+        return hocbf.detach(), Lf_hocbf, Lg_hocbf
+
+    def get_hocbf_and_lie_derivs_v2(self, x):
+        # For a more optimized version use get_hocbf_and_lie_derivs
         return self.hocbf(x), self.Lf_hocbf(x), self.Lg_hocbf(x)
 
     def Lf_hocbf(self, x):

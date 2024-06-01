@@ -69,13 +69,22 @@ def softmax(x, rho, conservative=True, dim=0):
 
 def lie_deriv(x, func, field):
     x = vectorize_tensors(x)
+    func_deriv = get_func_deriv(x, func)
+    field_val = field(x)
+    return lie_deriv_from_values(x, func_deriv, field_val)
+
+
+def get_func_deriv(x, func):
+    x = vectorize_tensors(x)
     grad_req = x.requires_grad
     x.requires_grad_()
     func_val = func(x).sum(0)
     func_deriv = [grad(fval, x, retain_graph=True)[0] for fval in func_val]
     x.requires_grad_(requires_grad=grad_req)
-    field_val = field(x)
+    return func_deriv
 
+
+def lie_deriv_from_values(x, func_deriv, field_val):
     assert field_val.ndim in {2, 3}, 'Field dimension is not accepted'
 
     if field_val.ndim == 2:

@@ -72,7 +72,7 @@ goal_pos = torch.tensor([
 # Initial Conditions
 x0 = torch.tensor([-1.0, -8.5, 0.0, pi / 2]).repeat(goal_pos.shape[0], 1)
 timestep = 0.01
-sim_time = 25.0
+sim_time = 15.0
 
 safety_filter.assign_desired_control(
     desired_control=lambda x: vectorize_tensors(partial(desired_control, goal_pos=goal_pos)(x)))
