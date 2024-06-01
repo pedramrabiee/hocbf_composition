@@ -53,8 +53,8 @@ goal_pos = torch.tensor([
 
 # Initial Conditions
 x0 = torch.tensor([-1.0, -8.5, 0.0, pi / 2]).repeat(goal_pos.shape[0], 1)
-timestep = 0.05
-sim_time = 12.0
+timestep = 0.1
+sim_time = 10.0
 
 # assign desired control based on the goal positions
 safety_filter.assign_desired_control(
@@ -116,7 +116,7 @@ plt.show()
 
 # Calculate time array based on the number of data points and timestep
 num_points = len(trajs[0][:, 0])  # Assuming trajs has the same length for all elements
-time = np.arange(0, num_points * timestep, timestep)
+time = np.arange(0, num_points * timestep, timestep)[:-1]
 
 # Create subplot for trajs and action variables
 fig, axs = plt.subplots(6, 1, figsize=(8, 10))

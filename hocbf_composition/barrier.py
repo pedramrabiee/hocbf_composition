@@ -111,8 +111,13 @@ class Barrier:
         """
         return torch.min(torch.hstack(self.compute_barriers_at(x)), dim=-1).values.unsqueeze(-1)
 
-    # Getters
+    def min_barrier(self, x):
+        """
+        Calculate the minimum value among all the barrier values computed at point x.
+        """
+        return torch.min(self.barrier(x), dim=-1).values.unsqueeze(-1)
 
+    # Getters
     @property
     def rel_deg(self):
         """
@@ -254,12 +259,6 @@ class CompositionBarrier(Barrier):
          This method returns a horizontally stacked torch tensor of the value of barriers at x.
         """
         return apply_and_batchize(self._barrier_funcs, x)
-
-    def min_barrier(self, x):
-        """
-        Calculate the minimum value among all the barrier values computed at point x.
-        """
-        return torch.min(self.barrier(x), dim=-1).values.unsqueeze(-1)
 
     def compose(self, c_key: str):
         """
