@@ -89,8 +89,7 @@ class Barrier:
         grad_req = x.requires_grad
         x.requires_grad_()
         hocbf = self.hocbf(x)
-        func_val = hocbf.sum(0)
-        hocbf_deriv = [grad(fval, x, retain_graph=True)[0] for fval in func_val]
+        hocbf_deriv = [grad(fval, x, retain_graph=True)[0] for fval in hocbf.sum(0)]
         x.requires_grad_(requires_grad=grad_req)
         Lf_hocbf = lie_deriv_from_values(x, hocbf_deriv, self._dynamics.f(x))
         Lg_hocbf = lie_deriv_from_values(x, hocbf_deriv, self._dynamics.g(x))
