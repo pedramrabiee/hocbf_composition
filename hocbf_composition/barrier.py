@@ -51,9 +51,6 @@ class Barrier:
         assert self._barrier_func is not None, \
             "Barrier functions must be assigned first. Use the assign method"
 
-        if self._dynamics is not None:
-            raise Warning('The assinged dynamics is overriden. Barriers are rebuilt.')
-
         self._dynamics = dynamics
         # make higher-order barrier function
         self._barriers = self._make_hocbf_series(barrier=self.barrier, rel_deg=self._rel_deg, alphas=self._alphas)
@@ -215,9 +212,6 @@ class CompositionBarrier(Barrier):
         """
         Assign dynamics
         """
-        if self._dynamics is not None:
-            raise Warning('The assinged dynamics is overriden by the dynamics of the'
-                          ' first barrier on the barriers list')
         self._dynamics = dynamics
         return self
 

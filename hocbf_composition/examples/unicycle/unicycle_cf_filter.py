@@ -3,12 +3,14 @@ import matplotlib as mpl
 from math import pi
 from hocbf_composition.examples.unicycle.unicycle_dynamics import UnicycleDynamics
 from hocbf_composition.utils.make_map import Map
-from hocbf_composition.safety_filters.closed_form_safety_filter import MinIntervCFSafeControl
+from hocbf_composition.safe_controls.closed_form_safe_control import MinIntervCFSafeControl
 from hocbf_composition.examples.unicycle.map_config import map_config
 from hocbf_composition.examples.unicycle.unicycle_desired_control import desired_control
 from time import time
 import datetime
 import matplotlib.pyplot as plt
+from hocbf_composition.utils.utils import *
+
 
 mpl.rcParams['text.usetex'] = True
 mpl.rcParams['font.family'] = 'Times'
@@ -17,7 +19,7 @@ mpl.rcParams['font.family'] = 'Times'
 
 # Barrier configs
 cfg = AD(softmax_rho=20,
-         softmin_rho=20,
+         softmin_rho=5,
          pos_barrier_rel_deg=2,
          vel_barrier_rel_deg=1,
          obstacle_alpha=[2.5],
@@ -108,12 +110,12 @@ for i in range(4):
 # plt.grid(True)
 plt.gca().set_aspect('equal', adjustable='box')
 # Save the contour plot
-plt.savefig(f'contour_plot_{current_time}.png')
+plt.savefig(f'figs/Trajectories_CF_Safe_Control_{current_time}.png')
 plt.show()
 
 # Calculate time array based on the number of data points and timestep
-num_points = len(trajs[0][:, 0])  # Assuming trajs has the same length for all elements
-time = np.arange(0, num_points * timestep, timestep)[:-1]
+num_points = trajs[0].shape[0]  # Assuming trajs has the same length for all elements
+time = np.arange(0, round(num_points * timestep, 3), timestep)
 
 # Create subplot for trajs and action variables
 fig, axs = plt.subplots(6, 1, figsize=(8, 10))
@@ -155,7 +157,7 @@ for ax in axs:
 
 # Adjust layout and save the combined plot
 plt.tight_layout()
-plt.savefig(f'combined_plot_{current_time}.png')
+plt.savefig(f'figs/States_CF_Safe_Control_{current_time}.png')
 
 # Show the plots
 plt.show()

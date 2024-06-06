@@ -4,9 +4,10 @@ from torch.nn.functional import softplus, relu
 from attrdict import AttrDict
 from hocbf_composition.dynamics import AffineInControlDynamics
 from hocbf_composition.barrier import SoftCompositionBarrier
+from hocbf_composition.safe_controls.base_safe_control import BaseSafeControl, BaseMinIntervSafeControl
 
 
-class CFSafeControl:
+class CFSafeControl(BaseSafeControl):
     """
     Closed-Form-Safe Control
     """
@@ -47,36 +48,30 @@ class CFSafeControl:
         u = - torch.einsum('bij,bi->bj', Q_inv, c - Lg_hocbf * lam)
         return u
 
-    def get_safe_optimal_trajs(self, x0, timestep=0.001, sim_time=4.0, method='dopri5'):
-        return get_trajs_from_action_func(x0=x0, dynamics=self._dynamics,
-                                          action_func=self.safe_optimal_control,
-                                          timestep=timestep, sim_time=sim_time,
-                                          method=method)
-
-    def get_safe_optimal_trajs_zoh(self, x0, timestep=0.001, sim_time=4.0, method='dopri5'):
-        return get_trajs_from_action_func_zoh(x0=x0, dynamics=self._dynamics,
-                                              action_func=self.safe_optimal_control,
-                                              timestep=timestep, sim_time=sim_time,
-                                              method=method)
-
     def eval_barrier(self, x):
         return self._barrier.hocbf(x)
 
 
-class MinIntervCFSafeControl(CFSafeControl):
+class MinIntervCFSafeControl(BaseMinIntervSafeControl, CFSafeControl):
     """
     Minimum-Intervention-Closed-Form-Safe Control: This class inherits from CFSafeControl and introduces
     a minimum intervention cost approach. Rather than explicitly assigning cost matrices Q and c,
      this class directly works with the assinged desired control.
     """
 
-    def assign_cost(self, Q, c):
-        raise ('Use assign_desired_control to assign desired control.'
-               ' The min intervention cost is automatically assigned.')
+    def safe_optimal_control(self, x):
+        x = tensify(x).to(torch.float64)
 
-    def assign_desired_control(self, desired_control):
-        self._Q = lambda x: 2 * torch.eye(self._action_dim, dtype=torch.float64).repeat(x.shape[0], 1, 1)
-        self._c = lambda x: -2 * desired_control(x)
+        hocbf, Lf_hocbf, Lg_hocbf = self._barrier.get_hocbf_and_lie_derivs(x)
+        u_d = self._desired_control(x)
+        omega = Lf_hocbf + torch.einsum('bi,bi->b', Lg_hocbf, u_d).unsqueeze(-1) + self._alpha(hocbf)
+        den = torch.einsum('bi,bi->b', Lg_hocbf, Lg_hocbf).unsqueeze(-1) + (
+                1 / self._params.slack_gain) * hocbf ** 2
+        num = softplus(-omega, beta=self._params.softplus_gain) if self._params.use_softplus else relu(-omega)
+        lam = num / den
+
+        u = u_d + Lg_hocbf * lam
+        return u
 
 
 class InputConstCFSafeControl(CFSafeControl):
@@ -200,7 +195,7 @@ class InputConstCFSafeControl(CFSafeControl):
         self._dynamics.set_g(aug_g)
 
 
-class MinIntervInputConstCFSafeControl(InputConstCFSafeControl):
+class MinIntervInputConstCFSafeControl(BaseMinIntervSafeControl, InputConstCFSafeControl):
     def assign_desired_control(self, desired_control):
         self._desired_control = desired_control
         self.make()
