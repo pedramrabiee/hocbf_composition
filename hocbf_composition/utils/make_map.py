@@ -1,6 +1,6 @@
 from attrdict import AttrDict
 from hocbf_composition.barrier import Barrier, SoftCompositionBarrier
-from hocbf_composition.utils import *
+from hocbf_composition.utils.utils import *
 
 
 class Map:

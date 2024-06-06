@@ -99,7 +99,7 @@ Example code snippet:
 
 ```python
 from hocbf_composition.examples.unicycle.unicycle_dynamics import UnicycleDynamics
-from hocbf_composition.make_map import Map
+from hocbf_composition.utils.make_map import Map
 
 # Instantiate dynamics
 dynamics = UnicycleDynamics(state_dim=4, action_dim=2)

@@ -1,12 +1,9 @@
 from attrdict import AttrDict as AD
-from functools import partial
 import matplotlib as mpl
-import matplotlib.pyplot as plt
 from math import pi
-from hocbf_composition.utils import *
 from hocbf_composition.examples.unicycle.unicycle_dynamics import UnicycleDynamics
-from hocbf_composition.make_map import Map
-from hocbf_composition.closed_form_safety_filter import MinIntervCFSafeControl
+from hocbf_composition.utils.make_map import Map
+from hocbf_composition.safety_filters.closed_form_safety_filter import MinIntervCFSafeControl
 from hocbf_composition.examples.unicycle.map_config import map_config
 from hocbf_composition.examples.unicycle.unicycle_desired_control import desired_control
 from time import time

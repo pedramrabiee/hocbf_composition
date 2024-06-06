@@ -1,10 +1,9 @@
-from hocbf_composition.utils import *
+from hocbf_composition.utils.utils import *
 import torch
 from torch.nn.functional import softplus, relu
 from attrdict import AttrDict
 from hocbf_composition.dynamics import AffineInControlDynamics
-from torchdiffeq import odeint
-from hocbf_composition.barrier import SoftCompositionBarrier, NonSmoothCompositionBarrier
+from hocbf_composition.barrier import SoftCompositionBarrier
 
 
 class CFSafeControl:
@@ -13,14 +12,11 @@ class CFSafeControl:
     """
 
     def __init__(self, action_dim, alpha=None, params=None):
+        super().__init__(action_dim, alpha, params)
         self._action_dim = action_dim
-        self._alpha = alpha if alpha is not None else lambda x: x
         self._params = params if params is not None else AttrDict(slack_gain=1e24,
                                                                   use_softplus=False,
                                                                   softplus_gain=2.0)
-        self._barrier = None
-        self._Q = None
-        self._c = None
 
     def assign_state_barrier(self, barrier):
         self._barrier = barrier
@@ -28,11 +24,6 @@ class CFSafeControl:
 
     def assign_dynamics(self, dynamics):
         self._dynamics = dynamics
-        return self
-
-    def assign_cost(self, Q, c):
-        self._Q = Q
-        self._c = c
         return self
 
     def safe_optimal_control(self, x):
@@ -95,10 +86,8 @@ class InputConstCFSafeControl(CFSafeControl):
 
     def __init__(self, action_dim, alpha=None, params=None):
         super().__init__(action_dim, alpha, params)
-        self._dynamics = None
-        self._ac_barrier = None
-        self._barrier = None
         self._state_barrier = None
+        self._ac_barrier = None
 
     def assign_dynamics(self, dynamics):
         raise "Use 'assign_state_action_dynamics' method to assign state and action dynamics"

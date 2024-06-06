@@ -1,5 +1,5 @@
 from typing import List
-from hocbf_composition.utils import *
+from hocbf_composition.utils.utils import *
 
 
 class Barrier:
@@ -50,6 +50,9 @@ class Barrier:
          """
         assert self._barrier_func is not None, \
             "Barrier functions must be assigned first. Use the assign method"
+
+        if self._dynamics is not None:
+            raise Warning('The assinged dynamics is overriden. Barriers are rebuilt.')
 
         self._dynamics = dynamics
         # make higher-order barrier function
@@ -197,6 +200,10 @@ class CompositionBarrier(Barrier):
     This class represents a barrier formed by composing multiple barriers with a specific rule.
     """
 
+    def __init__(self, cfg=None):
+        super().__init__(cfg)
+        self._barrier_funcs = None
+
     def assign(self, barrier_func, rel_deg=1, alphas=None):
         """
         Override the assign method to raise an error.
@@ -208,6 +215,9 @@ class CompositionBarrier(Barrier):
         """
         Assign dynamics
         """
+        if self._dynamics is not None:
+            raise Warning('The assinged dynamics is overriden by the dynamics of the'
+                          ' first barrier on the barriers list')
         self._dynamics = dynamics
         return self
 
@@ -236,7 +246,6 @@ class CompositionBarrier(Barrier):
         self._rel_deg = 1
 
         # Define barrier functions and higher-order barrier function as compositions of individual barrier functions
-        self._barrier_func = None
         self._barrier_funcs = lambda x: torch.hstack([barrier.barrier(x) for barrier in barriers])
         self._hocbf_func = lambda x: self.compose(rule)(torch.hstack([barrier.hocbf(x) for barrier in barriers]))
 
@@ -327,3 +336,74 @@ class NonSmoothCompositionBarrier(CompositionBarrier):
 
     def intersection_rule(self, x):
         return apply_and_match_dim(lambda y: torch.min(y, dim=-1).values, x)
+
+
+class MultiBarriers(Barrier):
+    def __init__(self, cfg=None):
+        super().__init__(cfg)
+        self._barriers = []
+        self._hocbf_funcs = []
+        self._barrier_funcs = []
+
+    def add_barriers(self, barriers: List[Barrier], infer_dynamics: bool = False):
+
+        # Infer dynamics of the first barrier if infer_dynamics = True and dynamics is not already assinged
+        if infer_dynamics:
+            if self._dynamics is None:
+                self._dynamics = barriers[0].dynamics
+
+        # Define barrier functions and higher-order barrier function
+        self._barrier_funcs.extend([barrier.barrier for barrier in barriers])
+        self._hocbf_funcs.extend([barrier.hocbf for barrier in barriers])
+        self._barriers.extend([barrier.barriers for barrier in barriers])
+
+        return self
+
+    def assign_dynamics(self, dynamics):
+        """
+        Assign dynamics
+        """
+        if self._dynamics is not None:
+            raise Warning('The assinged dynamics is overriden by the dynamics of the'
+                          ' first barrier on the barriers list')
+
+        self._dynamics = dynamics
+        return self
+
+    def barrier(self, x):
+        """
+        Compute main barrier value at x. Main barrier value is the barrier which defines all the
+         higher order cbfs involved in the composite barrier function expression.
+         This method returns a horizontally stacked torch tensor of the value of barriers at x.
+         Output: (batchsize, len(self._hocbf_funcs), 1)
+        """
+        return torch.stack([apply_and_batchize(barrier, x) for barrier in self._barrier_funcs]).transpose(1, 0)
+
+    def hocbf(self, x):
+        """
+        Compute the highest-order barrier function hocbf(x) om self._hocbf_funcs for a given trajs x.
+        This method returns a horizontally stacked torch tensor of the value of barriers at x.
+        Output: (batchsize, len(self._hocbf_funcs), 1)
+        """
+        return torch.stack([apply_and_batchize(hocbf, x) for hocbf in self._hocbf_funcs]).transpose(1, 0)
+
+    def Lf_hocbf(self, x):
+        """
+        Compute the Lie derivative of the highest-order barrier function with respect to the system dynamics f.
+        Output: (batchsize, len(self._hocbf_funcs), f dimension)
+        """
+        return torch.stack([lie_deriv(x, hocbf, self._dynamics.f) for hocbf in self._hocbf_funcs]).transpose(1, 0)
+
+    def Lg_hocbf(self, x):
+        """
+        Compute the Lie derivative of the highest-order barrier function with respect to the system dynamics g.
+        Output: (batchsize, len(self._hocbf_funcs), g.shape)
+        """
+        return torch.stack([lie_deriv(x, hocbf, self._dynamics.g) for hocbf in self._hocbf_funcs]).transpose(1, 0)
+
+    def get_hocbf_and_lie_derivs(self, x):
+        return self.get_hocbf_and_lie_derivs_v2(x)
+
+    @property
+    def barriers_flatten(self):
+        return [b for barrier in self._barriers for b in barrier]

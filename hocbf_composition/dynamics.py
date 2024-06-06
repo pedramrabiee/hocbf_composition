@@ -1,5 +1,5 @@
 import torch
-from hocbf_composition.utils import vectorize_tensors
+from hocbf_composition.utils.utils import vectorize_tensors
 
 
 class AffineInControlDynamics:
