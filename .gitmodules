@@ -1,0 +1,3 @@
+[submodule "hocbf_composition/qpth"]
+	path = hocbf_composition/qpth
+	url = https://github.com/locuslab/qpth
