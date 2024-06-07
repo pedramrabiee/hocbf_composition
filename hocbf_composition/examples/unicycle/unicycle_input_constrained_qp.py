@@ -10,7 +10,7 @@ from time import time
 import datetime
 import matplotlib.pyplot as plt
 import torch
-from hocbf_composition.safe_controls.qp_safe_control import MinIntervQPSafeControl
+from hocbf_composition.safe_controls.qp_safe_control import MinIntervInputConstQPSafeControl
 from hocbf_composition.utils.utils import *
 
 mpl.rcParams['text.usetex'] = True
@@ -40,13 +40,14 @@ barrier = MultiBarriers()
 barrier.add_barriers([*pos_barrier, *vel_barrier], infer_dynamics=True)
 
 
-safety_filter = MinIntervQPSafeControl(
+safety_filter = MinIntervInputConstQPSafeControl(
     action_dim=dynamics.action_dim,
     alpha=lambda x: 0.5 * x,
     params=AD(slack_gain=1e24,
               use_softplus=False,
               softplus_gain=2.0)
-).assign_dynamics(dynamics=dynamics).assign_state_barrier(barrier=barrier)
+).assign_dynamics(dynamics=dynamics).assign_state_barrier(barrier=barrier
+                                                          ).assign_control_bounds(low=[-4.0, -1.0], high=[4.0, 1.0])
 
 # Goal positions
 goal_pos = torch.tensor([
@@ -116,7 +117,7 @@ for i in range(4):
 # plt.grid(True)
 plt.gca().set_aspect('equal', adjustable='box')
 # Save the contour plot
-plt.savefig(f'figs/Trajectories_QP_Safe_Control_{current_time}.png')
+plt.savefig(f'figs/Trajectories_Input_Constrained_QP_Safe_Control_{current_time}.png')
 plt.show()
 
 # Calculate time array based on the number of data points and timestep
@@ -163,7 +164,7 @@ for ax in axs:
 
 # Adjust layout and save the combined plot
 plt.tight_layout()
-plt.savefig(f'States_QP_Safe_Control_{current_time}.png')
+plt.savefig(f'figs/States_Input_Constrained_QP_Safe_Control_{current_time}.png')
 
 # Show the plots
 plt.show()
