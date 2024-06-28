@@ -27,7 +27,7 @@ class CFSafeControl(BaseSafeControl):
         self._dynamics = dynamics
         return self
 
-    def safe_optimal_control(self, x):
+    def safe_optimal_control(self, x, ret_info=False):
         x = tensify(x).to(torch.float64)
         Q = self._Q(x)
         c = self._c(x)
@@ -59,7 +59,7 @@ class MinIntervCFSafeControl(BaseMinIntervSafeControl, CFSafeControl):
      this class directly works with the assinged desired control.
     """
 
-    def safe_optimal_control(self, x):
+    def safe_optimal_control(self, x, ret_info=False):
         x = tensify(x).to(torch.float64)
 
         hocbf, Lf_hocbf, Lg_hocbf = self._barrier.get_hocbf_and_lie_derivs(x)
@@ -117,11 +117,11 @@ class InputConstCFSafeControl(CFSafeControl):
         self._make_aux_desired_action()
         return self
 
-    def safe_optimal_control(self, x):
+    def safe_optimal_control(self, x, ret_info=False):
         x = tensify(x).to(torch.float64)
 
         hocbf, Lf_hocbf, Lg_hocbf = self._barrier.get_hocbf_and_lie_derivs(x)
-        u_d = self._aux_desired_action(x)
+        u_d = self.aux_desired_action(x)
         omega = Lf_hocbf + torch.einsum('bi,bi->b', Lg_hocbf, u_d).unsqueeze(-1) + self._alpha(hocbf)
         den = (torch.einsum('bi,bi->b', Lg_hocbf, Lg_hocbf).unsqueeze(-1) +
                (1 / self._params.slack_gain) * hocbf ** 2)
@@ -162,8 +162,8 @@ class InputConstCFSafeControl(CFSafeControl):
 
         ac_out_Lg = lambda x: torch.inverse(lie_deriv(x, func=ac_out_func_lie_derivs[-2], field=self._dynamics.g))
 
-        self._aux_desired_action = lambda x: torch.einsum('bmn, bm->bn', ac_out_Lg(x),
-                                                          torch.stack([sigma * (dc(x) - of(x)) for dc, of, sigma in
+        self.aux_desired_action = lambda x: torch.einsum('bmn, bm->bn', ac_out_Lg(x),
+                                                         torch.stack([sigma * (dc(x) - of(x)) for dc, of, sigma in
                                                                        zip(desired_control_lie_derivs,
                                                                            ac_out_func_lie_derivs,
                                                                            self._params.sigma)]).sum(0))
@@ -195,6 +195,7 @@ class InputConstCFSafeControl(CFSafeControl):
         self._dynamics.set_g(aug_g)
 
 
+
 class MinIntervInputConstCFSafeControl(BaseMinIntervSafeControl, InputConstCFSafeControl):
     def assign_desired_control(self, desired_control):
         self._desired_control = desired_control
@@ -212,7 +213,7 @@ class MinIntervInputConstCFSafeControlRaw(InputConstCFSafeControl):
 
     def assign_desired_control(self, desired_control):
         self._desired_control = desired_control
-        self._aux_desired_action = desired_control
+        self.aux_desired_action = desired_control
         self.make()
         return self
 

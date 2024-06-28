@@ -1,8 +1,9 @@
+import torch
 from qpth.qp import QPFunction
 from hocbf_composition.safe_controls.base_safe_control import BaseSafeControl, BaseMinIntervSafeControl
 from hocbf_composition.utils.utils import *
 from hocbf_composition.safe_controls.closed_form_safe_control import InputConstCFSafeControl
-
+from torch.nn.functional import pad
 
 class QPSafeControl(BaseSafeControl):
     def __init__(self, action_dim, alpha=None, params=None):
@@ -16,23 +17,87 @@ class QPSafeControl(BaseSafeControl):
         self._dynamics = dynamics
         return self
 
-    def safe_optimal_control(self, x):
+    def safe_optimal_control(self, x, ret_info=False):
+        if self._params.slacked:
+            return self.safe_optimal_control_slacked(x, ret_info)
+
         x = tensify(x).to(torch.float64)
+        Q, c = self._make_objective(x)
+        G, h = self._make_ineq_const(x)
+        A, b = self._make_eq_const(x, Q.shape)
+
+        u = QPFunction()(Q, c, G, h, A, b)
+        if not ret_info:
+            return u
+
+        info = {}
+        constraint_at_u = torch.einsum("brm,bm->br", -G, u) + h
+        info['constraint_at_u'] = constraint_at_u
+
+        return u, info
+
+
+    def safe_optimal_control_slacked(self, x, ret_info=False):
+        x = tensify(x).to(torch.float64)
+
+        G, h = self._make_ineq_const_slacked(x)
+        num_constraints = h.shape[-1]
+        Q, c = self._make_objective_slacked(x, num_constraints)
+        A, b = self._make_eq_const(x, Q.shape)
+
+        res = QPFunction()(Q, c, G, h, A, b)
+        u = res[:, :self._action_dim]
+
+        if not ret_info:
+            return u
+
+        info = {}
+        constraint_at_u = torch.einsum("brm,bm->br", -G, res) + h
+        slack_vars = res[:, :self._action_dim]
+
+        info['constraint_at_u'] = constraint_at_u
+        info['slack_vars'] = slack_vars
+        return u, info
+
+
+    def _make_objective(self, x):
         Q = self._Q(x)
         c = self._c(x)
 
         assert Q.shape == (
             x.shape[0], self._action_dim, self._action_dim), 'Q should be of shape (batch_size, action_dim, action_dim)'
         assert c.shape == (x.shape[0], self._action_dim), 'c should be of shape (batch_size, action_dim)'
+        return Q, c
 
+    def _make_objective_slacked(self, x, num_constraints):
+        Q, c = self._make_objective(x)
+        # trick to do block diag on each batch dimension
+        batch_size = x.shape[0]
+        slack_quad_gains = self._params.slack_gain * 0.5 * torch.eye(num_constraints).repeat(batch_size, 1, 1)
+        slack_linear_gains = torch.zeros(batch_size, num_constraints)
+        Q = (pad(Q, (0, num_constraints, 0, num_constraints)) +
+             pad(slack_quad_gains, (self._action_dim, 0, self._action_dim, 0)))
+        c = torch.cat((c, slack_linear_gains), dim=-1)
+        return Q, c
+
+    def _make_ineq_const(self, x):
         hocbf, Lf_hocbf, Lg_hocbf = self._barrier.get_hocbf_and_lie_derivs(x)
+        G = -Lg_hocbf
+        h = (Lf_hocbf + self._alpha(hocbf)).squeeze(-1)
+        return G, h
 
-        A = torch.empty(Q.shape[0], 0, Q.shape[1])
-        b = torch.empty(Q.shape[0], 0)
+    def _make_ineq_const_slacked(self, x):
+        hocbf, Lf_hocbf, Lg_hocbf = self._barrier.get_hocbf_and_lie_derivs(x)
+        slack_weights = torch.diag_embed(hocbf.squeeze(-1), 0)
+        G = torch.cat((-Lg_hocbf, -slack_weights), dim=-1)
+        h = (Lf_hocbf + self._alpha(hocbf)).squeeze(-1)
+        return G, h
 
-        u = QPFunction()(Q, c, -Lg_hocbf, (Lf_hocbf + self._alpha(hocbf)).squeeze(-1), A, b)
-        return u
 
+    def _make_eq_const(self, x, Q_shape):
+        A = torch.empty(Q_shape[0], 0, Q_shape[1])
+        b = torch.empty(Q_shape[0], 0)
+        return A, b
 
 class MinIntervQPSafeControl(BaseMinIntervSafeControl, QPSafeControl):
     def assign_desired_control(self, desired_control):
@@ -56,28 +121,58 @@ class InputConstQPSafeControl(QPSafeControl):
 
         return self
 
-    def safe_optimal_control(self, x):
-        x = tensify(x).to(torch.float64)
-        Q = self._Q(x)
-        c = self._c(x)
+    def safe_optimal_control(self, x, ret_info=False):
+        if self._params.slacked:
+            return self.safe_optimal_control_slacked(x, ret_info)
 
-        assert Q.shape == (
-            x.shape[0], self._action_dim, self._action_dim), 'Q should be of shape (batch_size, action_dim, action_dim)'
-        assert c.shape == (x.shape[0], self._action_dim), 'c should be of shape (batch_size, action_dim)'
+        x = tensify(x).to(torch.float64)
+        Q, c = self._make_objective(x)
 
         hocbf, Lf_hocbf, Lg_hocbf = self._barrier.get_hocbf_and_lie_derivs(x)
-
-        A = torch.empty(Q.shape[0], 0, Q.shape[1])
-        b = torch.empty(Q.shape[0], 0)
-
         ac_G = self._ac_G(x)
         ac_h = self._ac_h(x)
+        G = torch.cat([-Lg_hocbf, ac_G], dim=1)
+        h = torch.cat([(Lf_hocbf + self._alpha(hocbf)).squeeze(-1), ac_h], dim=1)
 
-        u = QPFunction()(Q, c,
-                         torch.cat([-Lg_hocbf, ac_G], dim=1),
-                         torch.cat([(Lf_hocbf + self._alpha(hocbf)).squeeze(-1), ac_h], dim=1),
-                         A, b)
-        return u
+        A, b = self._make_eq_const(x, Q.shape)
+
+        u = QPFunction()(Q, c, G, h, A, b)
+
+        if not ret_info:
+            return u
+
+        info = {}
+        constraint_at_u = torch.einsum("brm,bm->br", -G, u) + h
+        info['constraint_at_u'] = constraint_at_u
+
+        return u, info
+
+
+    def safe_optimal_control_slacked(self, x, ret_info=False):
+        x = tensify(x).to(torch.float64)
+
+        G, h = self._make_ineq_const_slacked(x)
+        num_constraints = h.shape[-1]
+        Q, c = self._make_objective_slacked(x, num_constraints)
+
+        ac_G = pad(self._ac_G(x), (0, num_constraints))
+        G = torch.cat((G, ac_G), dim=-2)
+        h = torch.cat((h, self._ac_h(x)), dim=-1)
+
+        A, b = self._make_eq_const(x, Q.shape)
+
+        res = QPFunction()(Q, c, G, h, A, b)
+        u = res[:, :self._action_dim]
+        if not ret_info:
+            return u
+
+        info = {}
+        constraint_at_u = torch.einsum("brm,bm->br", -G, res) + h
+        slack_vars = res[:, :self._action_dim]
+
+        info['constraint_at_u'] = constraint_at_u
+        info['slack_vars'] = slack_vars
+        return u, info
 
 
 class MinIntervInputConstQPSafeControl(MinIntervQPSafeControl,

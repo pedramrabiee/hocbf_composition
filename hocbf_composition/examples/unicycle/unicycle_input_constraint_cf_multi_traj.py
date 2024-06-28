@@ -20,6 +20,9 @@ mpl.rcParams['font.family'] = 'serif'
 
 torch.set_default_dtype(torch.float64)
 
+# Control gains
+control_gains = dict(k1=0.2, k2=1.0, k3=2.0)
+
 # Barrier configs
 cfg = AD(softmax_rho=20,
          softmin_rho=10,
@@ -39,7 +42,6 @@ pos_barrier, vel_barrier = map_.get_barriers()
 
 # make action dynamics
 ac_dyn = LowPassFilterDynamics(state_dim=2, action_dim=2, params=dict(gains=[1.0, 0.6]))
-
 
 # make action output function
 ac_out_func = lambda x: x
@@ -65,26 +67,25 @@ safety_filter = MinIntervInputConstCFSafeControl(
                                action_output_function=ac_out_func).assign_state_barrier(
     barrier=[*pos_barrier, *vel_barrier]).assign_action_barrier(action_barrier=ac_barriers, rel_deg=1)
 
-# goal_pos = torch.tensor([
-#     [3.0, 4.5],
-#     [-7.0, 0.0],
-#     [7.0, 1.5],
-# ])
 
-goal_pos = torch.tensor([
-    # [4, 9.5]
-    [3.0, 4.5],
-    [-7.0, 0.0],
-    [7.0, 1.5],
-    [-0.9, 7.0]
-])
+# Goal positions
+x = np.linspace(-10, 10, 60)
+y = np.linspace(-10, 10, 60)
+X, Y = np.meshgrid(x, y, )
+points = np.column_stack((X.flatten(), Y.flatten()))
+points = np.column_stack((points, np.zeros(points.shape)))
+points = torch.tensor(points, dtype=torch.float32)
+Z = map_.barrier.min_barrier(points)
+goals = points[(Z >= 0).squeeze()]
+print("num trajs: ", len(goals))
+goal_pos = goals[:, :2]
 
 # Initial Conditions
 timestep = 0.01
 sim_time = 20.0
 
 safety_filter.assign_desired_control(
-    desired_control=lambda x: vectorize_tensors(partial(desired_control, goal_pos=goal_pos, k1=0.2, k2=1.0, k3=2.0)(x)))
+    desired_control=lambda x: vectorize_tensors(partial(desired_control, goal_pos=goal_pos, **control_gains)(x)))
 
 safety_filter.make()
 x0 = torch.tensor([-1.0, -8.5, 0.0, pi / 2, 0.0, 0.0]).repeat(goal_pos.shape[0], 1)
@@ -96,33 +97,6 @@ print(time() - start_time)
 
 # Rearrange trajs
 trajs = [torch.vstack(t.split(6)) for t in torch.hstack([tt for tt in trajs])]
-
-# Get actions values along the trajs
-actions = []
-des_ctrls = []
-h_vals = []
-min_barriers = []
-min_constraint = []
-aux_des_ctrls = []
-for i, traj in enumerate(trajs):
-    des_ctrl = lambda x: vectorize_tensors(
-        partial(desired_control, goal_pos=goal_pos[i].repeat(x.shape[0], 1))(x))
-    safety_filter.assign_desired_control(
-        desired_control=des_ctrl).make()
-    start_time = time()
-    actions.append(safety_filter.safe_optimal_control(traj))
-    print("totol_time", time() - start_time)
-
-    for j in range(10):
-        start_time = time()
-        safety_filter.safe_optimal_control(traj[j, :].unsqueeze(0))
-        print(time() - start_time)
-
-    aux_des_ctrls.append(safety_filter.aux_desired_action(traj))
-    des_ctrls.append(des_ctrl(traj))
-    h_vals.append(safety_filter.barrier.hocbf(traj))
-    min_barriers.append(safety_filter.barrier.get_min_barrier_at(traj))
-    min_constraint.append(safety_filter.barrier.min_barrier(traj))
 
 
 ############
@@ -159,30 +133,89 @@ ax.set_xticks([-10, -5, 0, 5, 10])
 ax.set_yticks([-10, -5, 0, 5, 10])
 
 
-ax.plot(trajs[0][0, 0], trajs[0][0, 1], 'x', color='blue', markersize=8, label=r'$x_0$')
 for i in range(len(trajs)):
+    ax.plot(trajs[i][:, 0], trajs[i][:, 1], color='deepskyblue', alpha=0.05)
+
+# Creating a custom line for 'Trajectories' with alpha 0.8 for the legend
+custom_lines.append(Line2D([0], [0], color='deepskyblue', alpha=0.6, label='Trajectories'))
+
+# Goal positions
+goal_pos = torch.tensor([
+    [3.0, 4.5],
+    [-7.0, 0.0],
+    [7.0, 1.5],
+    [-0.9, 7.0]
+])
+
+timestep = 0.01
+sim_time = 20.0
+
+safety_filter.assign_desired_control(
+    desired_control=lambda x: vectorize_tensors(partial(desired_control, goal_pos=goal_pos)(x)))
+
+safety_filter.make()
+x0 = torch.tensor([-1.0, -8.5, 0.0, pi / 2, 0.0, 0.0]).repeat(goal_pos.shape[0], 1)
+
+# Simulate trajectories
+start_time = time()
+trajs = safety_filter.get_safe_optimal_trajs(x0=x0, sim_time=sim_time, timestep=timestep, method='euler')
+print(time() - start_time)
+
+# Rearrange trajs
+trajs = [torch.vstack(t.split(6)) for t in torch.hstack([tt for tt in trajs])]
+
+# Get actions values along the trajs
+actions = []
+des_ctrls = []
+h_vals = []
+min_barriers = []
+min_constraint = []
+aux_des_ctrls = []
+for i, traj in enumerate(trajs):
+    des_ctrl = lambda x: vectorize_tensors(
+        partial(desired_control, goal_pos=goal_pos[i].repeat(x.shape[0], 1), **control_gains)(x))
+    safety_filter.assign_desired_control(
+        desired_control=des_ctrl).make()
+    actions.append(safety_filter.safe_optimal_control(traj))
+    aux_des_ctrls.append(safety_filter.aux_desired_action(traj))
+    des_ctrls.append(des_ctrl(traj))
+    h_vals.append(safety_filter.barrier.hocbf(traj))
+    min_barriers.append(safety_filter.barrier.get_min_barrier_at(traj))
+    min_constraint.append(safety_filter.barrier.min_barrier(traj))
+
+ax.plot(trajs[0][0, 0], trajs[0][0, 1], 'x', color='blue', markersize=8, label=r'$x_0$')
+
+for i in range(4):
     ax.plot(goal_pos[i][0], goal_pos[i][1], '*', markersize=10, color='limegreen', label='Goal' if i == 0 else None)
     ax.plot(trajs[i][-1, 0], trajs[i][-1, 1], '+', color='blue', markersize=8, label=r'$x_f$' if i == 0 else None)
-    ax.plot(trajs[i][:, 0], trajs[i][:, 1], label='Trajectories' if i == 0 else None, color='black')
+    ax.plot(trajs[i][:, 0], trajs[i][:, 1], label='Selected Trajectories' if i == 0 else None, color='black')
 
 
 # Creating the legend
 handles, labels = ax.get_legend_handles_labels()
 handles.insert(0, custom_lines[0])
 labels.insert(0, r'$\mathcal{S}_{\rm s}$')
+handles.insert(3, custom_lines[1])  # Add the custom line for Trajectories with higher alpha
+labels.insert(3, 'Trajectories')  # Add the corresponding label
+
+
 # ax.legend(handles, labels)
 ax.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, 1.12), ncol=3, frameon=False, fontsize=12)
 
-custom_order = [r'$\mathcal{S}_{\rm s}$', 'Goal', 'Trajectories', r'$x_0$', r'$x_f$']
+custom_order = [r'$\mathcal{S}_{\rm s}$', 'Goal', 'Selected Trajectories', 'Trajectories', r'$x_0$', r'$x_f$']
 handle_dict = dict(zip(labels, handles))
 ordered_handles = [handle_dict[label] for label in custom_order]
 ordered_labels = custom_order
 
+
 plt.tight_layout()
 
 # Save the contour plot
-plt.savefig(f'figs/Trajectories_Input_Constrained_CF_Safe_Control_{current_time}.png', dpi=600)
+plt.savefig(f'figs/Trajectories_Input_Constrained_CF_Safe_Control_{current_time}_600dpi.png', dpi=600)
+plt.savefig(f'figs/Trajectories_Input_Constrained_CF_Safe_Control_{current_time}_300dpi.png', dpi=300)
+
 plt.show()
+
 
 # Calculate time array based on the number of data points and timestep
 num_points = trajs[0].shape[0]  # Assuming trajs has the same length for all elements
@@ -286,6 +319,7 @@ plt.tight_layout()
 
 
 
+plt.savefig(f'figs/Barriers_Input_Constrained_CF_Safe_Control_{current_time}.png', dpi=600)
 plt.savefig(f'figs/Barriers_Input_Constrained_CF_Safe_Control_{current_time}.png', dpi=600)
 
 # Show the plots

@@ -34,6 +34,11 @@ def make_box_barrier_functionals(bounds, idx):
 def make_linear_alpha_function_form_list_of_coef(coef_list):
     return [(lambda x, c=c: c * x) for c in coef_list]
 
+def make_cubic_alpha_function_form_list_of_coef(coef_list):
+    return [(lambda x, c=c: c * x ** 3) for c in coef_list]
+
+def make_tanh_alpha_function_form_list_of_coef(coef_list):
+    return [(lambda x, c=c: c * torch.tanh(x)) for c in coef_list]
 
 def vectorize_tensors(arr):
     if isinstance(arr, torch.Tensor):

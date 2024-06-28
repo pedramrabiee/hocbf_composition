@@ -21,7 +21,7 @@ class BaseSafeControl:
         self._c = c
         return self
 
-    def safe_optimal_control(self, x):
+    def safe_optimal_control(self, x, ret_info=False):
         raise NotImplementedError
 
     def get_safe_optimal_trajs(self, x0, timestep=0.001, sim_time=4.0, method='dopri5'):
@@ -35,6 +35,9 @@ class BaseSafeControl:
                                               action_func=self.safe_optimal_control,
                                               timestep=timestep, sim_time=sim_time,
                                               method=method)
+    @property
+    def barrier(self):
+        return self._barrier
 
 class BaseMinIntervSafeControl(BaseSafeControl):
     def assign_desired_control(self, desired_control):

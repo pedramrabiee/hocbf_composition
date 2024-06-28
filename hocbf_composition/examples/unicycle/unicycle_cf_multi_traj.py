@@ -44,6 +44,77 @@ safety_filter = MinIntervCFSafeControl(
 ).assign_dynamics(dynamics=dynamics).assign_state_barrier(barrier=map_.barrier)
 
 # Goal positions
+x = np.linspace(-10, 10, 60)
+y = np.linspace(-10, 10, 60)
+X, Y = np.meshgrid(x, y, )
+points = np.column_stack((X.flatten(), Y.flatten()))
+points = np.column_stack((points, np.zeros(points.shape)))
+points = torch.tensor(points, dtype=torch.float32)
+Z = map_.barrier.min_barrier(points)
+goals = points[(Z >= 0).squeeze()]
+print("num trajs: ", len(goals))
+goal_pos = goals[:, :2]
+
+# Initial Conditions
+x0 = torch.tensor([-1.0, -8.5, 0.0, pi / 2]).repeat(goal_pos.shape[0], 1)
+timestep = 0.01
+sim_time = 20.0
+
+# assign desired control based on the goal positions
+safety_filter.assign_desired_control(
+    desired_control=lambda x: vectorize_tensors(partial(desired_control, goal_pos=goal_pos, **control_gains)(x))
+)
+
+# Simulate trajectories
+start_time = time()
+trajs = safety_filter.get_safe_optimal_trajs(x0=x0, sim_time=sim_time, timestep=timestep, method='euler')
+print(time() - start_time)
+
+# Rearrange trajs
+trajs = [torch.vstack(t.split(dynamics.state_dim)) for t in torch.hstack([tt for tt in trajs])]
+
+############
+#  Plots   #
+############
+
+current_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+x = np.linspace(-10.5, 10.5, 500)
+y = np.linspace(-10.5, 10.5, 500)
+X, Y = np.meshgrid(x, y, )
+points = np.column_stack((X.flatten(), Y.flatten()))
+points = np.column_stack((points, np.zeros(points.shape)))
+points = torch.tensor(points, dtype=torch.float32)
+# print(barriers[0].barrier(points))
+Z = map_.barrier.min_barrier(points)
+Z = Z.reshape(X.shape)
+
+fig, ax = plt.subplots(figsize=(6, 6))
+
+contour_plot = ax.contour(X, Y, Z, levels=[0], colors='red')
+# Adding a custom legend handle for the contour
+from matplotlib.lines import Line2D
+custom_lines = [Line2D([0], [0], color='red', lw=1.5)]
+
+ax.set_xlabel(r'$q_{\rm x}$', fontsize=16)
+ax.set_ylabel(r'$q_{\rm y}$', fontsize=16)
+ax.spines['right'].set_visible(False)
+ax.spines['top'].set_visible(False)
+ax.set_aspect('equal', adjustable='box')  # Maintain equal aspect ratio
+ax.tick_params(axis='x', labelsize=16)  # Font size for x-axis ticks
+ax.tick_params(axis='y', labelsize=16)  # Font size for y-axis ticks
+ax.set_xticks([-10, -5, 0, 5, 10])
+ax.set_yticks([-10, -5, 0, 5, 10])
+
+# ax.plot(trajs[0][0, 0], trajs[0][0, 1], 'x', color='blue', markersize=8, label=r'$x_0$')
+
+for i in range(len(trajs)):
+    ax.plot(trajs[i][:, 0], trajs[i][:, 1], color='deepskyblue', alpha=0.05)
+
+# Creating a custom line for 'Trajectories' with alpha 0.8 for the legend
+custom_lines.append(Line2D([0], [0], color='deepskyblue', alpha=0.6, label='Trajectories'))
+
+# Goal positions
 goal_pos = torch.tensor([
     [3.0, 4.5],
     [-7.0, 0.0],
@@ -91,50 +162,24 @@ for i, traj in enumerate(trajs):
 #  Plots   #
 ############
 
-current_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-
-x = np.linspace(-10.5, 10.5, 500)
-y = np.linspace(-10.5, 10.5, 500)
-X, Y = np.meshgrid(x, y, )
-points = np.column_stack((X.flatten(), Y.flatten()))
-points = np.column_stack((points, np.zeros(points.shape)))
-points = torch.tensor(points, dtype=torch.float32)
-# print(barriers[0].barrier(points))
-Z = map_.barrier.min_barrier(points)
-Z = Z.reshape(X.shape)
-
-fig, ax = plt.subplots(figsize=(6, 6))
-
-contour_plot = ax.contour(X, Y, Z, levels=[0], colors='red')
-# Adding a custom legend handle for the contour
-from matplotlib.lines import Line2D
-custom_lines = [Line2D([0], [0], color='red', lw=1.5)]
-
-ax.set_xlabel(r'$q_{\rm x}$', fontsize=16)
-ax.set_ylabel(r'$q_{\rm y}$', fontsize=16)
-ax.spines['right'].set_visible(False)
-ax.spines['top'].set_visible(False)
-ax.set_aspect('equal', adjustable='box')  # Maintain equal aspect ratio
-ax.tick_params(axis='x', labelsize=16)  # Font size for x-axis ticks
-ax.tick_params(axis='y', labelsize=16)  # Font size for y-axis ticks
-ax.set_xticks([-10, -5, 0, 5, 10])
-ax.set_yticks([-10, -5, 0, 5, 10])
-
 ax.plot(trajs[0][0, 0], trajs[0][0, 1], 'x', color='blue', markersize=8, label=r'$x_0$')
+
 
 for i in range(4):
     ax.plot(goal_pos[i][0], goal_pos[i][1], '*', markersize=10, color='limegreen', label='Goal' if i == 0 else None)
     ax.plot(trajs[i][-1, 0], trajs[i][-1, 1], '+', color='blue', markersize=8, label=r'$x_f$' if i == 0 else None)
-    ax.plot(trajs[i][:, 0], trajs[i][:, 1], label='Trajectories' if i == 0 else None, color='black')
+    ax.plot(trajs[i][:, 0], trajs[i][:, 1], label='Selected Trajectories' if i == 0 else None, color='black')
 
 # Creating the legend
 handles, labels = ax.get_legend_handles_labels()
 handles.insert(0, custom_lines[0])
 labels.insert(0, r'$\mathcal{S}_{\rm s}$')
-
+handles.insert(3, custom_lines[1])  # Add the custom line for Trajectories with higher alpha
+labels.insert(3, 'Trajectories')  # Add the corresponding label
+# ax.legend(handles, labels)
 ax.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, 1.12), ncol=3, frameon=False, fontsize=12)
 
-custom_order = [r'$\mathcal{S}_{\rm s}$', 'Goal', 'Trajectories', r'$x_0$', r'$x_f$']
+custom_order = [r'$\mathcal{S}_{\rm s}$', 'Goal', 'Selected Trajectories', 'Trajectories', r'$x_0$', r'$x_f$']
 handle_dict = dict(zip(labels, handles))
 ordered_handles = [handle_dict[label] for label in custom_order]
 ordered_labels = custom_order
@@ -142,7 +187,9 @@ ordered_labels = custom_order
 plt.tight_layout()
 
 # Save the contour plot
-plt.savefig(f'figs/Trajectories_CF_Safe_Control_{current_time}.png', dpi=600)
+plt.savefig(f'figs/Trajectories_CF_Safe_Control_{current_time}_600dpi.png', dpi=600)
+plt.savefig(f'figs/Trajectories_CF_Safe_Control_{current_time}_300dpi.png', dpi=300)
+
 plt.show()
 
 # Calculate time array based on the number of data points and timestep
@@ -177,7 +224,7 @@ axs[3].set_ylabel(r'$u_1$', fontsize=16)
 
 axs[4].plot(time, actions[0][:, 1], label=r'$u_2$', color='black')
 axs[4].plot(time, des_ctrls[0][:, 1],  color='red', linestyle='--', label=r'$u_{{\rm d}_2}$')
-axs[4].legend(loc='upper right', ncol=2, frameon=False, fontsize=14)
+axs[4].legend(loc='lower right', ncol=2, frameon=False, fontsize=14)
 axs[4].set_ylabel(r'$u_2$', fontsize=16)
 
 axs[4].set_xlabel(r'$t~(\rm {s})$', fontsize=16)

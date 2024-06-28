@@ -5,9 +5,7 @@ from math import pi
 
 # Desired control definition
 
-k1, k2, k3 = 0.2, 1.0, 2.0
-
-def desired_control(x, goal_pos):
+def desired_control(x, goal_pos, k1=0.2, k2=1.0, k3=2.0):
     dist_to_goal = torch.norm(x[:, :2] - goal_pos[:, :2], dim=-1)
     q_x, q_y, v, theta = x[:, 0], x[:, 1], x[:, 2], x[:, 3]
     psi = torch.atan2(q_y - goal_pos[:, 1], q_x - goal_pos[:, 0]) - theta + pi

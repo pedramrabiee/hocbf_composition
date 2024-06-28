@@ -200,6 +200,8 @@ class CompositionBarrier(Barrier):
     def __init__(self, cfg=None):
         super().__init__(cfg)
         self._barrier_funcs = None
+        self._composition_rule = None
+        self._barriers_raw = None
 
     def assign(self, barrier_func, rel_deg=1, alphas=None):
         """
@@ -212,7 +214,11 @@ class CompositionBarrier(Barrier):
         """
         Assign dynamics
         """
+        # Handle the case where the composition barrier and all other barrier is already made, and a new dynamics is assigned
         self._dynamics = dynamics
+        if self._composition_rule is not None:
+            # barriers should be created once again using
+            self.assign_barriers_and_rule(barriers=self._barriers_raw, rule=self._composition_rule, infer_dynamics=False)
         return self
 
     # @torch.jit.script
@@ -227,6 +233,10 @@ class CompositionBarrier(Barrier):
         Returns:
             - self: Updated CompositionBarrier object.
         """
+        # For the case where a new dynamics is assigned save these arguments. Check assgin_dynamics for more details
+        self._composition_rule = rule
+        self._barriers_raw = barriers
+
         # Infer dynamics from the barriers
         if infer_dynamics:
             if self._dynamics is not None:
