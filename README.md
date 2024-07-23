@@ -1,5 +1,7 @@
 ## Higher-Order Barrier Function Composition Library
 
+![Trajectory Plots](hocbf_composition/examples/unicycle/figs/Trajectories_CF_Safe_Control_Multi_Trajs.png)
+
 This repository provides implementations of barrier functions and higher-order composition barrier functions for control and safety in dynamical systems. It includes classes for basic barrier functions, composition of barrier functions, soft composition, and non-smooth composition.
 
 ### Barrier Class
@@ -109,4 +111,4 @@ map = Map(barriers_info=barriers_info, dynamics=dynamics, cfg=cfg)
 
 # Simulate the unicycle's trajectory
 ```
-![Trajectory Plots](hocbf_composition/examples/unicycle/figs/contour_plot_unicycle.png)
+
