@@ -48,7 +48,15 @@ class CFSafeControl(BaseSafeControl):
         lam = num / den
 
         u = - torch.einsum('bij,bi->bj', Q_inv, c - Lg_hocbf * lam)
-        return u
+
+        return u if not ret_info else self._add_optimal_control_info(u, hocbf, Lf_hocbf, Lg_hocbf, lam)
+
+    def _add_optimal_control_info(self, u, hocbf, Lf_hocbf, Lg_hocbf, lam):
+        info = {}
+        info['slack_vars'] = hocbf * lam / self._params.slack_gain
+        info['constraint_at_u'] = (Lf_hocbf + torch.einsum('bi,bi->b', Lg_hocbf, u).unsqueeze(-1) +
+                                   self._alpha(hocbf) + info['slack_vars'] * hocbf)
+        return u, info
 
     def eval_barrier(self, x):
         return self._barrier.hocbf(x)
@@ -73,7 +81,8 @@ class MinIntervCFSafeControl(BaseMinIntervSafeControl, CFSafeControl):
         lam = num / den
 
         u = u_d + Lg_hocbf * lam
-        return u
+
+        return u if not ret_info else self._add_optimal_control_info(u, hocbf, Lf_hocbf, Lg_hocbf, lam)
 
 
 class InputConstCFSafeControl(CFSafeControl):
@@ -134,10 +143,11 @@ class InputConstCFSafeControl(CFSafeControl):
         lam = num / den
 
         u = u_d + Lg_hocbf * lam
-        return u
+
+        return u if not ret_info else self._add_optimal_control_info(u, hocbf, Lf_hocbf, Lg_hocbf, lam)
+
 
     # Helper functions
-
     def _make_composed_barrier(self):
         # Remake state barriers with the augmented dynamics
         self._state_barrier = [barrier.assign_dynamics(self._dynamics) for barrier in self._state_barrier]
