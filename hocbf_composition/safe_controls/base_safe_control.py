@@ -9,6 +9,8 @@ class BaseSafeControl:
         self._barrier = None
         self._Q = None
         self._c = None
+        if 'buffer' not in self._params:
+            self._params['buffer'] = 0.0
 
     def assign_state_barrier(self, barrier):
         raise NotImplementedError
