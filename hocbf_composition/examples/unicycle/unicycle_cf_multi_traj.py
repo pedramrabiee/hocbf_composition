@@ -117,15 +117,17 @@ custom_lines.append(Line2D([0], [0], color='deepskyblue', alpha=0.6, label='Traj
 # Goal positions
 goal_pos = torch.tensor([
     [3.0, 4.5],
-    [-7.0, 0.0],
-    [7.0, 1.5],
-    [-1.0, 7.0]
+    [-7.0, 9.0],
+    # [-7.0, 0.0],
+    # [7.0, 1.5],
+    [-1.0, 7.0],
+    [5.0, 9.5],
 ])
 
 # Initial Conditions
 x0 = torch.tensor([-1.0, -8.5, 0.0, pi / 2]).repeat(goal_pos.shape[0], 1)
 timestep = 0.01
-sim_time = 10.0
+sim_time = 12.0
 
 # assign desired control based on the goal positions
 safety_filter.assign_desired_control(
@@ -176,19 +178,17 @@ handles.insert(0, custom_lines[0])
 labels.insert(0, r'$\mathcal{S}_{\rm s}$')
 handles.insert(3, custom_lines[1])  # Add the custom line for Trajectories with higher alpha
 labels.insert(3, 'Trajectories')  # Add the corresponding label
-# ax.legend(handles, labels)
-ax.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, 1.12), ncol=3, frameon=False, fontsize=12)
 
-custom_order = [r'$\mathcal{S}_{\rm s}$', 'Goal', 'Selected Trajectories', 'Trajectories', r'$x_0$', r'$x_f$']
+
+custom_order = [r'$\mathcal{S}_{\rm s}$', r'$x_0$', 'Goal', 'Trajectories', 'Selected Trajectories']
 handle_dict = dict(zip(labels, handles))
 ordered_handles = [handle_dict[label] for label in custom_order]
-ordered_labels = custom_order
+ax.legend(ordered_handles, custom_order, loc='upper center', bbox_to_anchor=(0.5, 1.12), ncol=3, frameon=False, fontsize=12)
 
 plt.tight_layout()
 
 # Save the contour plot
-plt.savefig(f'figs/Trajectories_CF_Safe_Control_{current_time}_600dpi.png', dpi=600)
-plt.savefig(f'figs/Trajectories_CF_Safe_Control_{current_time}_300dpi.png', dpi=300)
+plt.savefig(f'figs/Trajectories_CF_Safe_Control_Multi_Trajs_{current_time}_300dpi.png', dpi=300)
 
 plt.show()
 
@@ -245,7 +245,7 @@ for ax in axs:
 plt.subplots_adjust(wspace=0, hspace=0.2)
 plt.tight_layout()
 
-plt.savefig(f'figs/States_CF_Safe_Control_{current_time}.png', dpi=600)
+plt.savefig(f'figs/States_CF_Safe_Control_Multi_Trajs_{current_time}.png', dpi=600)
 
 # Show the plots
 plt.show()
@@ -281,7 +281,7 @@ for i, ax in enumerate(axs):
 plt.subplots_adjust(wspace=0, hspace=0.2)
 plt.tight_layout()
 
-plt.savefig(f'figs/Barriers_CF_Safe_Control_{current_time}.png', dpi=600)
+plt.savefig(f'figs/Barriers_CF_Safe_Control_Multi_Trajs_{current_time}.png', dpi=600)
 
 # Show the plots
 plt.show()

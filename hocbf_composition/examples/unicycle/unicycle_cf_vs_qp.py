@@ -110,7 +110,7 @@ ax.plot(trajs[0][0, 0], trajs[0][0, 1], 'x', color='blue', markersize=8, label=r
 for i in range(4):
     ax.plot(goal_pos[i][0], goal_pos[i][1], '*', markersize=10, color='limegreen', label='Goal' if i == 0 else None)
     ax.plot(trajs[i][-1, 0], trajs[i][-1, 1], '+', color='blue', markersize=8, label=r'$x_f$' if i == 0 else None)
-    ax.plot(trajs[i][:, 0], trajs[i][:, 1], label='Trajectories (Softmin R-CBF)' if i == 0 else None, color='black')
+    ax.plot(trajs[i][:, 0], trajs[i][:, 1], label='Soft-minimum R-CBF' if i == 0 else None, color='black')
 
 
 pos_barrier, vel_barrier = map_.get_barriers()
@@ -131,16 +131,17 @@ safety_filter = MinIntervQPSafeControl(
 # Goal positions
 goal_pos = torch.tensor([
     [3.0, 4.5],
-    [-7.0, 9.0],
+    [-8.0, 9.0],
+    # [-7.0, 0.0],
     # [7.0, 1.5],
     [-1.0, 7.0],
-    [5.0, 9.5],
+    [6.0, 9.5],
 ])
 
 # Initial Conditions
 x0 = torch.tensor([-1.0, -8.5, 0.0, pi / 2]).repeat(goal_pos.shape[0], 1)
 timestep = 0.01
-sim_time = 20.0
+sim_time = 25.0
 
 # assign desired control based on the goal positions
 safety_filter.assign_desired_control(
@@ -175,19 +176,19 @@ for i, traj in enumerate(trajs):
 
 for i in range(4):
     ax.plot(trajs[i][-1, 0], trajs[i][-1, 1], '+', color='blue', markersize=8)
-    ax.plot(trajs[i][:, 0], trajs[i][:, 1], label='Trajectories (HOCBF-QP)' if i == 0 else None, color='blueviolet')
+    ax.plot(trajs[i][:, 0], trajs[i][:, 1], label='Multiple HOCBF' if i == 0 else None, color='blueviolet')
 
 # Creating the legend
 handles, labels = ax.get_legend_handles_labels()
 handles.insert(0, custom_lines[0])
 labels.insert(0, r'$\mathcal{S}_{\rm s}$')
 
-custom_order = [r'$\mathcal{S}_{\rm s}$', r'$x_0$', r'$x_f$', 'Goal', 'Trajectories (Softmin R-CBF)', 'Trajectories (HOCBF-QP)']
+custom_order = [r'$\mathcal{S}_{\rm s}$', r'$x_0$', 'Soft-minimum R-CBF', 'Multiple HOCBF', 'Goal']
 handle_dict = dict(zip(labels, handles))
 ordered_handles = [handle_dict[label] for label in custom_order]
 ordered_labels = custom_order
 
-ax.legend(ordered_handles, ordered_labels, loc='upper center', bbox_to_anchor=(0.5, 1.17), ncol=2, frameon=False, fontsize=12)
+ax.legend(ordered_handles, ordered_labels, loc='upper center', bbox_to_anchor=(0.5, 1.12), ncol=3, frameon=False, fontsize=12)
 
 
 

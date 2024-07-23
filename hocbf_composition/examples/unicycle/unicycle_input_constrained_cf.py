@@ -59,24 +59,19 @@ safety_filter = MinIntervInputConstCFSafeControl(
               softplus_gain=2.0,
               softmin_rho=10,
               softmax_rho=10,
-              sigma=[1.0, 0.5])
+              sigma=[1.0, 0.5],
+              buffer=0.0)
 ).assign_state_action_dynamics(state_dynamics=state_dynamics,
                                action_dynamics=ac_dyn,
                                action_output_function=ac_out_func).assign_state_barrier(
     barrier=[*pos_barrier, *vel_barrier]).assign_action_barrier(action_barrier=ac_barriers, rel_deg=1)
 
-# goal_pos = torch.tensor([
-#     [3.0, 4.5],
-#     [-7.0, 0.0],
-#     [7.0, 1.5],
-# ])
 
 goal_pos = torch.tensor([
-    # [4, 9.5]
     [3.0, 4.5],
-    [-7.0, 0.0],
-    [7.0, 1.5],
-    [-0.9, 7.0]
+    [-8.0, 9.0],
+    [-0.9, 7.0],
+    [6.0, 9.5],
 ])
 
 # Initial Conditions
@@ -90,9 +85,7 @@ safety_filter.make()
 x0 = torch.tensor([-1.0, -8.5, 0.0, pi / 2, 0.0, 0.0]).repeat(goal_pos.shape[0], 1)
 
 # Simulate trajectories
-start_time = time()
 trajs = safety_filter.get_safe_optimal_trajs(x0=x0, sim_time=sim_time, timestep=timestep, method='euler')
-print(time() - start_time)
 
 # Rearrange trajs
 trajs = [torch.vstack(t.split(6)) for t in torch.hstack([tt for tt in trajs])]
@@ -109,14 +102,10 @@ for i, traj in enumerate(trajs):
         partial(desired_control, goal_pos=goal_pos[i].repeat(x.shape[0], 1))(x))
     safety_filter.assign_desired_control(
         desired_control=des_ctrl).make()
-    start_time = time()
     actions.append(safety_filter.safe_optimal_control(traj))
-    print("totol_time", time() - start_time)
 
     for j in range(10):
-        start_time = time()
         safety_filter.safe_optimal_control(traj[j, :].unsqueeze(0))
-        print(time() - start_time)
 
     aux_des_ctrls.append(safety_filter.aux_desired_action(traj))
     des_ctrls.append(des_ctrl(traj))
@@ -181,112 +170,112 @@ ordered_labels = custom_order
 plt.tight_layout()
 
 # Save the contour plot
-plt.savefig(f'figs/Trajectories_Input_Constrained_CF_Safe_Control_{current_time}.png', dpi=600)
+plt.savefig(f'figs/Trajectories_Input_Constrained_CF_Safe_Control_{current_time}.png', dpi=300)
 plt.show()
 
 # Calculate time array based on the number of data points and timestep
 num_points = trajs[0].shape[0]  # Assuming trajs has the same length for all elements
 time = np.linspace(0.0, (num_points - 1) * timestep, num_points)
+for id, traj in enumerate(trajs):
+    # Create subplot for trajs and action variables
+    fig, axs = plt.subplots(7, 1, figsize=(8, 10))
 
-# Create subplot for trajs and action variables
-fig, axs = plt.subplots(7, 1, figsize=(8, 10))
+    # Plot trajs variables
+    axs[0].plot(time, traj[:, 0], label=r'$q_{\rm x}$', color='red')
+    axs[0].plot(time, traj[:, 1], label=r'$q_{\rm y}$', color='blue')
+    axs[0].plot(time, torch.ones(time.shape) * goal_pos[0, 0], label=r'$q_{\rm d, x}$', color='red', linestyle=':')
+    axs[0].plot(time, torch.ones(time.shape) * goal_pos[0, 1], label=r'$q_{\rm d, y}$', color='blue', linestyle=':')
+    axs[0].legend(loc='lower center', ncol=4, frameon=False, fontsize=14)
 
-# Plot trajs variables
-axs[0].plot(time, trajs[0][:, 0], label=r'$q_{\rm x}$', color='red')
-axs[0].plot(time, trajs[0][:, 1], label=r'$q_{\rm y}$', color='blue')
-axs[0].plot(time, torch.ones(time.shape) * goal_pos[0, 0], label=r'$q_{\rm d, x}$', color='red', linestyle=':')
-axs[0].plot(time, torch.ones(time.shape) * goal_pos[0, 1], label=r'$q_{\rm d, y}$', color='blue', linestyle=':')
-axs[0].legend(loc='lower center', ncol=4, frameon=False, fontsize=14)
+    axs[0].set_ylabel(r'$q_{\rm x}, q_{\rm y}$', fontsize=16)
+    axs[0].legend(fontsize=14, loc='lower center', ncol=4, frameon=False)
+    axs[0].tick_params(axis='x', which='both', bottom=True, top=False, labelbottom=False)
 
-axs[0].set_ylabel(r'$q_{\rm x}, q_{\rm y}$', fontsize=16)
-axs[0].legend(fontsize=14, loc='lower center', ncol=4, frameon=False)
-axs[0].tick_params(axis='x', which='both', bottom=True, top=False, labelbottom=False)
+    axs[1].plot(time, traj[:, 2], label='v', color='black')
+    axs[1].set_ylabel(r'$v$', fontsize=16)
 
-axs[1].plot(time, trajs[0][:, 2], label='v', color='black')
-axs[1].set_ylabel(r'$v$', fontsize=16)
+    axs[2].plot(time, traj[:, 3], label='theta', color='black')
+    axs[2].set_ylabel(r'$\theta$', fontsize=16)
 
-axs[2].plot(time, trajs[0][:, 3], label='theta', color='black')
-axs[2].set_ylabel(r'$\theta$', fontsize=16)
+    # Plot actions
+    axs[3].plot(time, traj[:, 4], label=r'$u_1$', color='black')
+    axs[3].plot(time, des_ctrls[id][:, 0], color='red', linestyle='--', label=r'$u_{{\rm d}_1}$')
+    axs[3].legend(loc='upper right', ncol=2, frameon=False, fontsize=14)
+    axs[3].set_ylabel(r'$u_1$', fontsize=16)
 
-# Plot actions
-axs[3].plot(time, trajs[0][:, 4], label=r'$u_1$', color='black')
-axs[3].plot(time, des_ctrls[0][:, 0], color='red', linestyle='--', label=r'$u_{{\rm d}_1}$')
-axs[3].legend(loc='upper right', ncol=2, frameon=False, fontsize=14)
-axs[3].set_ylabel(r'$u_1$', fontsize=16)
+    axs[4].plot(time, traj[:, 5], label=r'$u_2$', color='black')
+    axs[4].plot(time, des_ctrls[id][:, 1],  color='red', linestyle='--', label=r'$u_{{\rm d}_2}$')
+    axs[4].legend(loc='upper right', ncol=2, frameon=False, fontsize=14)
+    axs[4].set_ylabel(r'$u_2$', fontsize=16)
 
-axs[4].plot(time, trajs[0][:, 5], label=r'$u_2$', color='black')
-axs[4].plot(time, des_ctrls[0][:, 1],  color='red', linestyle='--', label=r'$u_{{\rm d}_2}$')
-axs[4].legend(loc='upper right', ncol=2, frameon=False, fontsize=14)
-axs[4].set_ylabel(r'$u_2$', fontsize=16)
+    # Plot actions
+    axs[5].plot(time, actions[id][:, 0], label=r'$\hat u_1$', color='black')
+    axs[5].plot(time, aux_des_ctrls[id][:, 0], color='red', linestyle='--', label=r'$\hat u_{{\rm d}_1}$')
+    axs[5].set_ylabel(r'$\hat u_1$', fontsize=16)
+    axs[5].legend(loc='upper right', ncol=2, frameon=False, fontsize=14)
 
-# Plot actions
-axs[5].plot(time, actions[0][:, 0], label=r'$\hat u_1$', color='black')
-axs[5].plot(time, aux_des_ctrls[0][:, 0], color='red', linestyle='--', label=r'$\hat u_{{\rm d}_1}$')
-axs[5].set_ylabel(r'$\hat u_1$', fontsize=16)
-axs[5].legend(loc='upper right', ncol=2, frameon=False, fontsize=14)
+    axs[6].plot(time, actions[id][:, 1], label='$\hat u_2$', color='black')
+    axs[6].plot(time, aux_des_ctrls[id][:, 1], color='red', linestyle='--', label=r'$\hat u_{{\rm d}_2}$')
+    axs[6].set_ylabel(r'$\hat u_2$', fontsize=16)
+    axs[6].legend(loc='upper right', ncol=2, frameon=False, fontsize=14)
+    axs[6].set_xlabel(r'$t~(\rm {s})$', fontsize=16)
 
-axs[6].plot(time, actions[0][:, 1], label='$\hat u_2$', color='black')
-axs[6].plot(time, aux_des_ctrls[0][:, 1], color='red', linestyle='--', label=r'$\hat u_{{\rm d}_2}$')
-axs[6].set_ylabel(r'$\hat u_2$', fontsize=16)
-axs[6].legend(loc='upper right', ncol=2, frameon=False, fontsize=14)
-axs[6].set_xlabel(r'$t~(\rm {s})$', fontsize=16)
+    for i in range(6):
+        axs[i].tick_params(axis='x', which='both', bottom=True, top=False, labelbottom=False)
 
-for i in range(6):
-    axs[i].tick_params(axis='x', which='both', bottom=True, top=False, labelbottom=False)
-
-# Multiply x-axis labels by timestep value (0.001)
-for ax in axs:
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.tick_params(labelsize=16)
-    ax.set_xticks([0, 5, 10, 15, 20])
-    ax.set_xlim(time[0], time[-1])
-
-
-# Adjust layout and save the combined plot
-plt.subplots_adjust(wspace=0, hspace=0.2)
-plt.tight_layout()
-
-plt.savefig(f'figs/States_Input_Constrained_CF_Safe_Control_{current_time}.png')
-
-# Show the plots
-plt.show()
+    # Multiply x-axis labels by timestep value (0.001)
+    for ax in axs:
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.tick_params(labelsize=16)
+        ax.set_xticks([0, 5, 10, 15, 20])
+        ax.set_xlim(time[0], time[-1])
 
 
-fig, axs = plt.subplots(3, 1, figsize=(8, 4.5))
+    # Adjust layout and save the combined plot
+    plt.subplots_adjust(wspace=0, hspace=0.2)
+    plt.tight_layout()
 
-# Plot barrier values
-axs[0].plot(time, h_vals[0], color='black')
-axs[0].set_ylabel(r'$\hat h$', fontsize=16)
+    plt.savefig(f'figs/States_Input_Constrained_CF_Safe_Control_{current_time}_{id}.png')
 
-# Plot barrier values
-axs[1].plot(time, min_barriers[0], color='black')
-axs[1].set_ylabel(r'$\min \hat b_{j, i}$', fontsize=16)
-
-axs[2].plot(time, min_constraint[0], color='black')
-axs[2].set_ylabel(r'$\min \hat h_j$', fontsize=16)
-
-axs[2].set_xlabel(r'$t~(\rm {s})$', fontsize=16)
+    # Show the plots
+    plt.show()
 
 
-for i in range(2):
-    axs[i].tick_params(axis='x', which='both', bottom=True, top=False, labelbottom=False)
+    fig, axs = plt.subplots(3, 1, figsize=(8, 4.5))
 
-for ax in axs:
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.tick_params(labelsize=16)
-    ax.set_xlim(time[0], time[-1])
-    ax.set_xticks([0, 5, 10, 15, 20])
-    ax.set_yticks([0, 0.5])
+    # Plot barrier values
+    axs[0].plot(time, h_vals[id], color='black')
+    axs[0].set_ylabel(r'$\hat h$', fontsize=16)
+
+    # Plot barrier values
+    axs[1].plot(time, min_barriers[id], color='black')
+    axs[1].set_ylabel(r'$\min \hat b_{\hat \jmath, i}$', fontsize=16)
+
+    axs[2].plot(time, min_constraint[id], color='black')
+    axs[2].set_ylabel(r'$\min \hat h_{\hat \jmath}$', fontsize=16)
+
+    axs[2].set_xlabel(r'$t~(\rm {s})$', fontsize=16)
 
 
-plt.subplots_adjust(wspace=0, hspace=0.2)
-plt.tight_layout()
+    for i in range(2):
+        axs[i].tick_params(axis='x', which='both', bottom=True, top=False, labelbottom=False)
+
+    for ax in axs:
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.tick_params(labelsize=16)
+        ax.set_xlim(time[0], time[-1])
+        ax.set_xticks([0, 5, 10, 15, 20])
+        ax.set_yticks([0, 0.5])
+
+
+    plt.subplots_adjust(wspace=0, hspace=0.2)
+    plt.tight_layout()
 
 
 
-plt.savefig(f'figs/Barriers_Input_Constrained_CF_Safe_Control_{current_time}.png', dpi=600)
+    plt.savefig(f'figs/Barriers_Input_Constrained_CF_Safe_Control_{current_time}_{id}.png', dpi=600)
 
-# Show the plots
-plt.show()
+    # Show the plots
+    plt.show()

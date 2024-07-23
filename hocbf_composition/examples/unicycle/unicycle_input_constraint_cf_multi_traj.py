@@ -142,9 +142,9 @@ custom_lines.append(Line2D([0], [0], color='deepskyblue', alpha=0.6, label='Traj
 # Goal positions
 goal_pos = torch.tensor([
     [3.0, 4.5],
-    [-7.0, 0.0],
-    [7.0, 1.5],
-    [-0.9, 7.0]
+    [-8.0, 9.0],
+    [-0.9, 7.0],
+    [6.0, 9.5],
 ])
 
 timestep = 0.01
@@ -198,21 +198,19 @@ labels.insert(0, r'$\mathcal{S}_{\rm s}$')
 handles.insert(3, custom_lines[1])  # Add the custom line for Trajectories with higher alpha
 labels.insert(3, 'Trajectories')  # Add the corresponding label
 
-
 # ax.legend(handles, labels)
-ax.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, 1.12), ncol=3, frameon=False, fontsize=12)
 
-custom_order = [r'$\mathcal{S}_{\rm s}$', 'Goal', 'Selected Trajectories', 'Trajectories', r'$x_0$', r'$x_f$']
+custom_order = [r'$\mathcal{S}_{\rm s}$', r'$x_0$', 'Goal', 'Trajectories', 'Selected Trajectories']
 handle_dict = dict(zip(labels, handles))
 ordered_handles = [handle_dict[label] for label in custom_order]
-ordered_labels = custom_order
+ax.legend(ordered_handles, custom_order, loc='upper center', bbox_to_anchor=(0.5, 1.12), ncol=3, frameon=False, fontsize=12)
 
 
 plt.tight_layout()
 
 # Save the contour plot
-plt.savefig(f'figs/Trajectories_Input_Constrained_CF_Safe_Control_{current_time}_600dpi.png', dpi=600)
-plt.savefig(f'figs/Trajectories_Input_Constrained_CF_Safe_Control_{current_time}_300dpi.png', dpi=300)
+plt.savefig(f'figs/Trajectories_Input_Constrained_CF_Safe_Control_Multi_Trajs_{current_time}_600dpi.png', dpi=600)
+plt.savefig(f'figs/Trajectories_Input_Constrained_CF_Safe_Control_Multi_Trajs_{current_time}_300dpi.png', dpi=300)
 
 plt.show()
 
@@ -280,7 +278,7 @@ for ax in axs:
 plt.subplots_adjust(wspace=0, hspace=0.2)
 plt.tight_layout()
 
-plt.savefig(f'figs/States_Input_Constrained_CF_Safe_Control_{current_time}.png')
+plt.savefig(f'figs/States_Input_Constrained_CF_Safe_Control_Multi_Trajs_{current_time}.png')
 
 # Show the plots
 plt.show()
@@ -319,8 +317,8 @@ plt.tight_layout()
 
 
 
-plt.savefig(f'figs/Barriers_Input_Constrained_CF_Safe_Control_{current_time}.png', dpi=600)
-plt.savefig(f'figs/Barriers_Input_Constrained_CF_Safe_Control_{current_time}.png', dpi=600)
+plt.savefig(f'figs/Barriers_Input_Constrained_CF_Safe_Control_Multi_Trajs_{current_time}.png', dpi=600)
+plt.savefig(f'figs/Barriers_Input_Constrained_CF_Safe_Control_Multi_Trajs_{current_time}.png', dpi=600)
 
 # Show the plots
 plt.show()

@@ -46,15 +46,17 @@ safety_filter = MinIntervCFSafeControl(
 # Goal positions
 goal_pos = torch.tensor([
     [3.0, 4.5],
-    [-7.0, 0.0],
-    [7.0, 1.5],
-    [-1.0, 7.0]
+    [-7.0, 9.0],
+    # [-7.0, 0.0],
+    # [7.0, 1.5],
+    [-1.0, 7.0],
+    [5.0, 9.5],
 ])
 
 # Initial Conditions
 x0 = torch.tensor([-1.0, -8.5, 0.0, pi / 2]).repeat(goal_pos.shape[0], 1)
 timestep = 0.01
-sim_time = 10.0
+sim_time = 12.0
 
 # assign desired control based on the goal positions
 safety_filter.assign_desired_control(
@@ -62,9 +64,7 @@ safety_filter.assign_desired_control(
 )
 
 # Simulate trajectories
-start_time = time()
 trajs = safety_filter.get_safe_optimal_trajs(x0=x0, sim_time=sim_time, timestep=timestep, method='euler')
-print(time() - start_time)
 
 # Rearrange trajs
 trajs = [torch.vstack(t.split(dynamics.state_dim)) for t in torch.hstack([tt for tt in trajs])]
