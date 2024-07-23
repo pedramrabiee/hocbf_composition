@@ -21,7 +21,7 @@ control_gains = dict(k1=0.2, k2=1.0, k3=2.0)
 
 # Barrier configs
 cfg = AD(softmax_rho=20,
-         softmin_rho=20,
+         softmin_rho=10,
          pos_barrier_rel_deg=2,
          vel_barrier_rel_deg=1,
          obstacle_alpha=[2.5],
@@ -223,15 +223,15 @@ plt.show()
 fig, axs = plt.subplots(3, 1, figsize=(8, 4.5))
 
 # Plot barrier values
-axs[0].plot(time, h_vals[0], color='black')
-axs[0].set_ylabel(r'$\hat h$', fontsize=16)
+axs[0].plot(time, h_vals[0].min(dim=1).values.squeeze(), color='black')
+axs[0].set_ylabel(r'$\min b_{d_{{\rm c} -1}, i}$', fontsize=16)
 
 # Plot barrier values
 axs[1].plot(time, min_barriers[0], color='black')
-axs[1].set_ylabel(r'$\min \hat b_{j, i}$', fontsize=16)
+axs[1].set_ylabel(r'$\min b_{j, i}$', fontsize=16)
 
 axs[2].plot(time, min_constraint[0], color='black')
-axs[2].set_ylabel(r'$\min \hat h_j$', fontsize=16)
+axs[2].set_ylabel(r'$\min h_j$', fontsize=16)
 
 axs[2].set_xlabel(r'$t~(\rm {s})$', fontsize=16)
 
@@ -250,8 +250,6 @@ for ax in axs:
 
 plt.subplots_adjust(wspace=0, hspace=0.2)
 plt.tight_layout()
-
-
 
 plt.savefig(f'figs/Barriers_Input_Constrained_QP_Safe_Control_{current_time}.png', dpi=600)
 
