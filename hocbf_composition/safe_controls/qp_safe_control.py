@@ -53,7 +53,7 @@ class QPSafeControl(BaseSafeControl):
 
         info = {}
         constraint_at_u = torch.einsum("brm,bm->br", -G, res) + h
-        slack_vars = res[:, :self._action_dim]
+        slack_vars = res[:, self._action_dim:]
 
         info['constraint_at_u'] = constraint_at_u
         info['slack_vars'] = slack_vars
@@ -168,7 +168,7 @@ class InputConstQPSafeControl(QPSafeControl):
 
         info = {}
         constraint_at_u = torch.einsum("brm,bm->br", -G, res) + h
-        slack_vars = res[:, :self._action_dim]
+        slack_vars = res[:, self._action_dim:]
 
         info['constraint_at_u'] = constraint_at_u
         info['slack_vars'] = slack_vars
