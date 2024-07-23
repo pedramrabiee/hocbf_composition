@@ -39,6 +39,8 @@ class CFSafeControl(BaseSafeControl):
 
         hocbf, Lf_hocbf, Lg_hocbf = self._barrier.get_hocbf_and_lie_derivs(x)
 
+        hocbf -= self._params.buffer
+
         omega = Lf_hocbf - torch.einsum('bi,bij,bj->b', Lg_hocbf, Q_inv, c).unsqueeze(-1) + self._alpha(hocbf)
         den = torch.einsum('bi,bij,bj->b', Lg_hocbf, Q_inv, Lg_hocbf).unsqueeze(-1) + (
                 1 / self._params.slack_gain) * hocbf ** 2
@@ -121,6 +123,9 @@ class InputConstCFSafeControl(CFSafeControl):
         x = tensify(x).to(torch.float64)
 
         hocbf, Lf_hocbf, Lg_hocbf = self._barrier.get_hocbf_and_lie_derivs(x)
+
+        hocbf -= self._params.buffer
+
         u_d = self.aux_desired_action(x)
         omega = Lf_hocbf + torch.einsum('bi,bi->b', Lg_hocbf, u_d).unsqueeze(-1) + self._alpha(hocbf)
         den = (torch.einsum('bi,bi->b', Lg_hocbf, Lg_hocbf).unsqueeze(-1) +
