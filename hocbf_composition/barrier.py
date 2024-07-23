@@ -405,6 +405,12 @@ class MultiBarriers(Barrier):
         """
         return torch.stack([lie_deriv(x, hocbf, self._dynamics.g) for hocbf in self._hocbf_funcs]).transpose(1, 0)
 
+    def min_barrier(self, x):
+        """
+        Calculate the minimum value among all the barrier values computed at point x.
+        """
+        return torch.min(self.barrier(x), dim=-2).values
+
     def get_hocbf_and_lie_derivs(self, x):
         return self.get_hocbf_and_lie_derivs_v2(x)
 
