@@ -1,5 +1,5 @@
 from hocbf_composition.utils.utils import *
-
+from attrdict import AttrDict as AD
 class BaseSafeControl:
     def __init__(self, action_dim, alpha=None, params=None):
         self._action_dim = action_dim
@@ -11,7 +11,7 @@ class BaseSafeControl:
         self._c = None
 
         if self._params is None:
-            self._params = dict(buffer=0.0)
+            self._params = AD(buffer=0.0)
         if 'buffer' not in self._params:
             self._params['buffer'] = 0.0
 
