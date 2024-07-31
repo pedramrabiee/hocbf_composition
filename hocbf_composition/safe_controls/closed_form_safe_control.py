@@ -15,9 +15,9 @@ class CFSafeControl(BaseSafeControl):
     def __init__(self, action_dim, alpha=None, params=None):
         super().__init__(action_dim, alpha, params)
         self._action_dim = action_dim
-        self._params = params if params is not None else AttrDict(slack_gain=1e24,
-                                                                  use_softplus=False,
-                                                                  softplus_gain=2.0)
+        update_dict_no_overwrite(self._params, AttrDict(slack_gain=1e24,
+                                                        use_softplus=False,
+                                                        softplus_gain=2.0))
 
     def assign_state_barrier(self, barrier):
         self._barrier = barrier
@@ -146,7 +146,6 @@ class InputConstCFSafeControl(CFSafeControl):
 
         return u if not ret_info else self._add_optimal_control_info(u, hocbf, Lf_hocbf, Lg_hocbf, lam)
 
-
     # Helper functions
     def _make_composed_barrier(self):
         # Remake state barriers with the augmented dynamics
@@ -179,9 +178,9 @@ class InputConstCFSafeControl(CFSafeControl):
 
         self.aux_desired_action = lambda x: torch.einsum('bmn, bm->bn', ac_out_Lg(x),
                                                          torch.stack([sigma * (dc(x) - of(x)) for dc, of, sigma in
-                                                                       zip(desired_control_lie_derivs,
-                                                                           ac_out_func_lie_derivs,
-                                                                           self._params.sigma)]).sum(0))
+                                                                      zip(desired_control_lie_derivs,
+                                                                          ac_out_func_lie_derivs,
+                                                                          self._params.sigma)]).sum(0))
 
     def _make_desired_control(self):
         self._desired_control = lambda x: -torch.einsum('bij,bi->bj',
@@ -208,7 +207,6 @@ class InputConstCFSafeControl(CFSafeControl):
                                      self._ac_dyn.g(x[:, self._state_dyn.state_dim:])), dim=1)
 
         self._dynamics.set_g(aug_g)
-
 
 
 class MinIntervInputConstCFSafeControl(BaseMinIntervSafeControl, InputConstCFSafeControl):
