@@ -114,3 +114,12 @@ map = Map(barriers_info=barriers_info, dynamics=dynamics, cfg=cfg)
 # Simulate the unicycle's trajectory
 ```
 
+If you use this code or find it helpful in your research, please consider citing our paper:
+
+```bibtex
+@article{rabiee2024closed,
+  title={A Closed-Form Control for Safety Under Input Constraints Using a Composition of Control Barrier Functions},
+  author={Rabiee, Pedram and Hoagg, Jesse B},
+  journal={arXiv preprint arXiv:2406.16874},
+  year={2024}
+}
