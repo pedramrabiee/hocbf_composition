@@ -34,11 +34,14 @@ def make_box_barrier_functionals(bounds, idx):
 def make_linear_alpha_function_form_list_of_coef(coef_list):
     return [(lambda x, c=c: c * x) for c in coef_list]
 
+
 def make_cubic_alpha_function_form_list_of_coef(coef_list):
     return [(lambda x, c=c: c * x ** 3) for c in coef_list]
 
+
 def make_tanh_alpha_function_form_list_of_coef(coef_list):
     return [(lambda x, c=c: c * torch.tanh(x)) for c in coef_list]
+
 
 def vectorize_tensors(arr):
     if isinstance(arr, torch.Tensor):
@@ -76,7 +79,7 @@ def lie_deriv(x, func, field):
     x = vectorize_tensors(x)
     func_deriv = get_func_deriv(x, func)
     field_val = field(x)
-    return lie_deriv_from_values(x, func_deriv, field_val)
+    return lie_deriv_from_values(func_deriv, field_val)
 
 
 def get_func_deriv(x, func):
@@ -84,12 +87,17 @@ def get_func_deriv(x, func):
     grad_req = x.requires_grad
     x.requires_grad_()
     func_val = func(x).sum(0)
-    func_deriv = [grad(fval, x, retain_graph=True)[0] for fval in func_val]
+    func_deriv = get_func_deriv_from_func_vals(x, func_val)
     x.requires_grad_(requires_grad=grad_req)
     return func_deriv
 
 
-def lie_deriv_from_values(x, func_deriv, field_val):
+def get_func_deriv_from_func_vals(x, func_val):
+    func_deriv = [grad(fval, x, retain_graph=True)[0] for fval in func_val]
+    return func_deriv
+
+
+def lie_deriv_from_values(func_deriv, field_val):
     assert field_val.ndim in {2, 3}, 'Field dimension is not accepted'
 
     if field_val.ndim == 2:
@@ -101,7 +109,7 @@ def lie_deriv_from_values(x, func_deriv, field_val):
 
 def make_higher_order_lie_deriv_series(func, field, deg):
     """
-          Generate a series of higher-order lie derivative..
+          Generate a series of higher-order lie derivative.
 
           Parameters:
 
@@ -149,3 +157,9 @@ def get_trajs_from_action_func_zoh(x0, dynamics, action_func, timestep, sim_time
                   y0=x0,
                   t=torch.linspace(0.0, sim_time, int(sim_time / timestep) + 1),
                   method=method).detach()
+
+
+def update_dict_no_overwrite(original_dict, new_dict):
+    for key, value in new_dict.items():
+        if key not in original_dict:
+            original_dict[key] = value
