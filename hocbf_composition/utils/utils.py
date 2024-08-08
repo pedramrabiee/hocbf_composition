@@ -12,7 +12,7 @@ def make_circle_barrier_functional(center, radius):
                                 dim=-1) / radius - 1
 
 
-def make_norm_rectangular_barrier_functional(center, rotation, size, p=20):
+def make_norm_rectangular_barrier_functional(center, size, rotation=0.0, p=20):
     size, center = vectorize_tensors(size).to(torch.float64), vectorize_tensors(center).to(torch.float64)
     return lambda x: torch.norm(
         (rotate_tensors(points=vectorize_tensors(x), center=center.to(x.device),
@@ -21,7 +21,7 @@ def make_norm_rectangular_barrier_functional(center, rotation, size, p=20):
         dim=-1) - 1
 
 
-def make_affine_rectangular_barrier_functional(center, rotation, size, smooth=False, softmin_rho=40):
+def make_affine_rectangular_barrier_functional(center, size, rotation=0.0, smooth=False, softmin_rho=40):
     size, center = vectorize_tensors(size).to(torch.float64), vectorize_tensors(center).to(torch.float64)
 
     # Define the normals for the axis-aligned rectangle (in local coordinate system)
@@ -45,10 +45,10 @@ def make_affine_rectangular_barrier_functional(center, rotation, size, smooth=Fa
     # Return the affine constraint function
     return affine_rectangle
 
-def make_norm_rectangular_boundary_functional(center, rotation, size, p=20):
+def make_norm_rectangular_boundary_functional(center, size, rotation=0.0, p=20):
     return lambda x: -make_norm_rectangular_barrier_functional(center, rotation, size, p)(x)
 
-def make_affine_rectangular_boundary_functional(center, rotation, size, smooth=False, softmin_rho=40):
+def make_affine_rectangular_boundary_functional(center, size, rotation=0.0, smooth=False, softmin_rho=40):
     return lambda x: -make_affine_rectangular_barrier_functional(center, rotation, size, smooth, softmin_rho)(x)
 
 
