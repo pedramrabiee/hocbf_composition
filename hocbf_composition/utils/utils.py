@@ -46,10 +46,10 @@ def make_affine_rectangular_barrier_functional(center, size, rotation=0.0, smoot
     return affine_rectangle
 
 def make_norm_rectangular_boundary_functional(center, size, rotation=0.0, p=20):
-    return lambda x: -make_norm_rectangular_barrier_functional(center, rotation, size, p)(x)
+    return lambda x: -make_norm_rectangular_barrier_functional(center, size, rotation, p)(x)
 
 def make_affine_rectangular_boundary_functional(center, size, rotation=0.0, smooth=False, softmin_rho=40):
-    return lambda x: -make_affine_rectangular_barrier_functional(center, rotation, size, smooth, softmin_rho)(x)
+    return lambda x: -make_affine_rectangular_barrier_functional(center, size, rotation, smooth, softmin_rho)(x)
 
 
 def make_box_barrier_functionals(bounds, idx):
