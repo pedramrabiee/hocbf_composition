@@ -2,8 +2,8 @@ from hocbf_composition.utils.utils import *
 import torch
 from torch.nn.functional import softplus, relu
 from attrdict import AttrDict
-from hocbf_composition.dynamics import AffineInControlDynamics
-from hocbf_composition.barrier import SoftCompositionBarrier
+from utils.dynamics import AffineInControlDynamics
+from barriers.composite_barrier import SoftCompositionBarrier
 from hocbf_composition.safe_controls.base_safe_control import BaseSafeControl, BaseMinIntervSafeControl
 
 

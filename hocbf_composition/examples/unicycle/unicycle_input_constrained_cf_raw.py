@@ -1,18 +1,16 @@
 from hocbf_composition.examples.unicycle.unicycle_desired_control import desired_control
 from hocbf_composition.examples.unicycle.map_config import map_config
 from hocbf_composition.examples.unicycle.unicycle_dynamics import UnicycleDynamics
-from hocbf_composition.dynamics import LowPassFilterDynamics
-from hocbf_composition.barrier import Barrier
+from utils.dynamics import LowPassFilterDynamics
+from hocbf_composition.barriers.barrier import Barrier
 from hocbf_composition.safe_controls.closed_form_safe_control import MinIntervInputConstCFSafeControlRaw
 from attrdict import AttrDict as AD
-from functools import partial
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from math import pi
 from hocbf_composition.utils.make_map import Map
 from time import time
 import datetime
-import torch
 from hocbf_composition.utils.utils import *
 
 mpl.rcParams['text.usetex'] = True

@@ -1,5 +1,6 @@
 from attrdict import AttrDict
-from hocbf_composition.barrier import Barrier, SoftCompositionBarrier
+from barriers.barrier import Barrier
+from barriers.composite_barrier import SoftCompositionBarrier
 from hocbf_composition.utils.utils import *
 
 

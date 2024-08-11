@@ -6,7 +6,7 @@ from hocbf_composition.utils.make_map import Map
 from hocbf_composition.safe_controls.closed_form_safe_control import MinIntervCFSafeControl
 from hocbf_composition.examples.unicycle.map_config import map_config
 from hocbf_composition.examples.unicycle.unicycle_desired_control import desired_control
-from hocbf_composition.barrier import MultiBarriers
+from hocbf_composition.barriers.multi_barrier import MultiBarriers
 from hocbf_composition.safe_controls.qp_safe_control import MinIntervQPSafeControl
 
 from time import time

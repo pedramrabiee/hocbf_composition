@@ -1,5 +1,7 @@
 from hocbf_composition.utils.utils import *
 from attrdict import AttrDict as AD
+
+
 class BaseSafeControl:
     def __init__(self, action_dim, alpha=None, params=None):
         self._action_dim = action_dim
@@ -14,7 +16,6 @@ class BaseSafeControl:
             self._params = AD(buffer=0.0)
         if 'buffer' not in self._params:
             self._params['buffer'] = 0.0
-
 
     def assign_state_barrier(self, barrier):
         raise NotImplementedError
@@ -41,9 +42,11 @@ class BaseSafeControl:
                                               action_func=self.safe_optimal_control,
                                               timestep=timestep, sim_time=sim_time,
                                               method=method)
+
     @property
     def barrier(self):
         return self._barrier
+
 
 class BaseMinIntervSafeControl(BaseSafeControl):
     def assign_desired_control(self, desired_control):
