@@ -1,6 +1,6 @@
 from attrdict import AttrDict
-from barriers.barrier import Barrier
-from barriers.composite_barrier import SoftCompositionBarrier
+from hocbf_composition.barriers.barrier import Barrier
+from hocbf_composition.barriers.composite_barrier import SoftCompositionBarrier
 from hocbf_composition.utils.utils import *
 
 
@@ -13,11 +13,17 @@ class Map:
 
     def make_barrier_from_map(self):
         self.pos_barriers = self.make_position_barrier_from_map()
-        self.vel_barriers = self.make_velocity_barrier()
-        self.barrier = SoftCompositionBarrier(
-            cfg=self.cfg).assign_barriers_and_rule(barriers=[*self.pos_barriers, *self.vel_barriers],
+        if 'velocity' in self.barriers_info:
+            self.vel_barriers = self.make_velocity_barrier()
+            self.barrier = SoftCompositionBarrier(
+                cfg=self.cfg).assign_barriers_and_rule(barriers=[*self.pos_barriers, *self.vel_barriers],
                                                    rule='i',
                                                    infer_dynamics=True)
+        else:
+            self.barrier = SoftCompositionBarrier(
+                cfg=self.cfg).assign_barriers_and_rule(barriers=[*self.pos_barriers],
+                                                       rule='i',
+                                                       infer_dynamics=True)
 
     def get_barriers(self):
         return self.pos_barriers, self.vel_barriers

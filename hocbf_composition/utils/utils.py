@@ -55,7 +55,8 @@ def make_affine_rectangular_boundary_functional(center, size, rotation=0.0, smoo
 def make_box_barrier_functionals(bounds, idx):
     lb, ub = bounds
     # TODO: test dimensions
-    return [lambda x: vectorize_tensors(x)[..., idx] - lb, lambda x: ub - vectorize_tensors(x)[..., idx]]
+    return [lambda x: vectorize_tensors(x)[..., idx] - torch.tensor(lb), lambda x: torch.tensor(ub) -
+                                                                                   vectorize_tensors(x)[..., idx]]
 
 
 def make_linear_alpha_function_form_list_of_coef(coef_list):
