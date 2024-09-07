@@ -84,6 +84,10 @@ class AffineInControlDynamics:
     def action_dim(self):
         return self._action_dim
 
+    @property
+    def params(self):
+        return self._params
+
 
 class LowPassFilterDynamics(AffineInControlDynamics):
     def __init__(self, state_dim, action_dim, params):
