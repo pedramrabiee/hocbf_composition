@@ -167,7 +167,7 @@ ordered_labels = custom_order
 plt.tight_layout()
 
 # Save the contour plot
-plt.savefig(f'figs/[05] Trajectories_Input_Constrained_CF_Safe_Control_{current_time}.png', dpi=300)
+plt.savefig(f'figs/05_Trajectories_Input_Constrained_CF_Safe_Control_{current_time}.png', dpi=300)
 plt.show()
 
 # Calculate time array based on the number of data points and timestep
@@ -233,7 +233,7 @@ for id, traj in enumerate(trajs):
     plt.subplots_adjust(wspace=0, hspace=0.2)
     plt.tight_layout()
 
-    plt.savefig(f'figs/[05] States_Input_Constrained_CF_Safe_Control_{current_time}_{id}.png')
+    plt.savefig(f'figs/05_States_Input_Constrained_CF_Safe_Control_{current_time}_{id}.png')
 
     # Show the plots
     plt.show()
@@ -272,7 +272,7 @@ for id, traj in enumerate(trajs):
 
 
 
-    plt.savefig(f'figs/[05] Barriers_Input_Constrained_CF_Safe_Control_{current_time}_{id}.png', dpi=300)
+    plt.savefig(f'figs/05_Barriers_Input_Constrained_CF_Safe_Control_{current_time}_{id}.png', dpi=300)
 
     # Show the plots
     plt.show()
