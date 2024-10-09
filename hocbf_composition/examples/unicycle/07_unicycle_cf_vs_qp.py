@@ -195,5 +195,5 @@ ax.legend(ordered_handles, ordered_labels, loc='upper center', bbox_to_anchor=(0
 plt.tight_layout()
 
 # Save the contour plot
-plt.savefig(f'figs/Trajectories_CF_QP_Comparison{current_time}.png', dpi=200)
+plt.savefig(f'figs/[07] Trajectories_CF_QP_Comparison{current_time}.png', dpi=200)
 plt.show()

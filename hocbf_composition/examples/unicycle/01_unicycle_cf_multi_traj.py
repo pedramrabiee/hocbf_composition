@@ -185,8 +185,8 @@ ax.legend(ordered_handles, custom_order, loc='upper center', bbox_to_anchor=(0.5
 plt.tight_layout()
 
 # Save the contour plot
-plt.savefig(f'figs/Trajectories_CF_Safe_Control_Multi_Trajs_{current_time}_300dpi.png', dpi=300)
-plt.savefig(f'figs/Trajectories_CF_Safe_Control_Multi_Trajs_{current_time}_200dpi.png', dpi=200)
+plt.savefig(f'figs/[01] Trajectories_CF_Safe_Control_Multi_Trajs_{current_time}_300dpi.png', dpi=300)
+plt.savefig(f'figs/[01] Trajectories_CF_Safe_Control_Multi_Trajs_{current_time}_200dpi.png', dpi=200)
 
 
 plt.show()
@@ -244,7 +244,7 @@ for ax in axs:
 plt.subplots_adjust(wspace=0, hspace=0.2)
 plt.tight_layout()
 
-plt.savefig(f'figs/States_CF_Safe_Control_Multi_Trajs_{current_time}.png', dpi=300)
+plt.savefig(f'figs/[01] States_CF_Safe_Control_Multi_Trajs_{current_time}.png', dpi=300)
 
 # Show the plots
 plt.show()
@@ -280,7 +280,7 @@ for i, ax in enumerate(axs):
 plt.subplots_adjust(wspace=0, hspace=0.2)
 plt.tight_layout()
 
-plt.savefig(f'figs/Barriers_CF_Safe_Control_Multi_Trajs_{current_time}.png', dpi=300)
+plt.savefig(f'figs/[01] Barriers_CF_Safe_Control_Multi_Trajs_{current_time}.png', dpi=300)
 
 # Show the plots
 plt.show()

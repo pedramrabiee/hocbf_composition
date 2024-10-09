@@ -159,7 +159,7 @@ ordered_labels = custom_order
 plt.tight_layout()
 
 # Save the contour plot
-plt.savefig(f'figs/Trajectories_QP_Safe_Control_{current_time}.png', dpi=600)
+plt.savefig(f'figs/[03] Trajectories_QP_Safe_Control_{current_time}.png', dpi=600)
 plt.show()
 
 # Calculate time array based on the number of data points and timestep
@@ -216,7 +216,7 @@ for ax in axs:
 plt.subplots_adjust(wspace=0, hspace=0.2)
 plt.tight_layout()
 
-plt.savefig(f'figs/States_QP_Safe_Control_{current_time}.png', dpi=600)
+plt.savefig(f'figs/[03] States_QP_Safe_Control_{current_time}.png', dpi=600)
 
 # Show the plots
 plt.show()
@@ -248,7 +248,7 @@ for ax in axs:
 plt.subplots_adjust(wspace=0, hspace=0.2)
 plt.tight_layout()
 
-plt.savefig(f'figs/Barriers_QP_Safe_Control_{current_time}.png', dpi=600)
+plt.savefig(f'figs/[03] Barriers_QP_Safe_Control_{current_time}.png', dpi=600)
 
 # Show the plots
 plt.show()
