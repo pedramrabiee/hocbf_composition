@@ -120,7 +120,7 @@ def get_func_deriv(x, func):
 
 
 def get_func_deriv_from_func_vals(x, func_val):
-    func_deriv = [grad(fval, x, retain_graph=True)[0] for fval in func_val]
+    func_deriv = [grad(fval, x, create_graph=True)[0] for fval in func_val]
     return func_deriv
 
 
