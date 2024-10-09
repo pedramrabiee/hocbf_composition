@@ -23,12 +23,12 @@ cfg = AD(softmax_rho=20,
          pos_barrier_rel_deg=3,
          vel_barrier_rel_deg=2,
          obstacle_alpha=[1.0, 2.5],
-         boundary_alpha=[1.0, 1.0],
+         boundary_alpha=[6.0, 1.0],
          velocity_alpha=[10.0],
          )
 
 # Instantiate dynamics
-state_dynamics = UnicycleDynamics(state_dim=4, action_dim=2)
+state_dynamics = UnicycleDynamics()
 
 # make position and velocity barrer
 map_ = Map(barriers_info=map_config, dynamics=state_dynamics, cfg=cfg)
@@ -51,12 +51,12 @@ ac_barriers = [Barrier().assign(barrier_func=ac_barrier, rel_deg=1).assign_dynam
 safety_filter = MinIntervInputConstCFSafeControl(
     action_dim=state_dynamics.action_dim,
     alpha=lambda x: 1.0 * x,
-    params=AD(slack_gain=200,
+    params=AD(slack_gain=100,
               use_softplus=False,
               softplus_gain=2.0,
               softmin_rho=10,
               softmax_rho=10,
-              sigma=[1.0, 0.5],
+              sigma=[1.0, 1.0],
               buffer=0.0)
 ).assign_state_action_dynamics(state_dynamics=state_dynamics,
                                action_dynamics=ac_dyn,
@@ -65,7 +65,7 @@ safety_filter = MinIntervInputConstCFSafeControl(
 
 
 goal_pos = torch.tensor([
-    [3.0, 4.5],
+    [3.5, 4.5],
     [-8.0, 9.0],
     [-0.9, 7.0],
     [6.0, 9.5],
@@ -106,7 +106,7 @@ for i, traj in enumerate(trajs):
 
     aux_des_ctrls.append(safety_filter.aux_desired_action(traj))
     des_ctrls.append(des_ctrl(traj))
-    h_vals.append(safety_filter.barrier.hocbf(traj))
+    h_vals.append(safety_filter.barrier.hocbf(traj).detach())
     min_barriers.append(safety_filter.barrier.get_min_barrier_at(traj))
     min_constraint.append(safety_filter.barrier.min_barrier(traj))
 
@@ -272,7 +272,7 @@ for id, traj in enumerate(trajs):
 
 
 
-    plt.savefig(f'figs/Barriers_Input_Constrained_CF_Safe_Control_{current_time}_{id}.png', dpi=600)
+    plt.savefig(f'figs/Barriers_Input_Constrained_CF_Safe_Control_{current_time}_{id}.png', dpi=300)
 
     # Show the plots
     plt.show()

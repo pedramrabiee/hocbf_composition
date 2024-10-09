@@ -31,7 +31,7 @@ cfg = AD(softmax_rho=20,
          )
 
 # Instantiate dynamics
-dynamics = UnicycleDynamics(state_dim=4, action_dim=2)
+dynamics = UnicycleDynamics()
 
 # Make barrier from map_
 map_ = Map(barriers_info=map_config, dynamics=dynamics, cfg=cfg)
@@ -195,5 +195,5 @@ ax.legend(ordered_handles, ordered_labels, loc='upper center', bbox_to_anchor=(0
 plt.tight_layout()
 
 # Save the contour plot
-plt.savefig(f'figs/Trajectories_CF_QP_Comparison{current_time}.png', dpi=600)
+plt.savefig(f'figs/Trajectories_CF_QP_Comparison{current_time}.png', dpi=200)
 plt.show()

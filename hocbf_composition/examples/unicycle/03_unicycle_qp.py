@@ -9,27 +9,26 @@ from hocbf_composition.barriers.multi_barrier import MultiBarriers
 from time import time
 import datetime
 import matplotlib.pyplot as plt
-from hocbf_composition.safe_controls.qp_safe_control import MinIntervInputConstQPSafeControl
+from hocbf_composition.safe_controls.qp_safe_control import MinIntervQPSafeControl
 from hocbf_composition.utils.utils import *
 
 mpl.rcParams['text.usetex'] = True
 mpl.rcParams['font.family'] = 'serif'
 
 # Control gains
-control_gains = dict(k1=0.2, k2=1.0, k3=2.0)
 
 # Barrier configs
 cfg = AD(softmax_rho=20,
-         softmin_rho=10,
+         softmin_rho=20,
          pos_barrier_rel_deg=2,
          vel_barrier_rel_deg=1,
-         obstacle_alpha=[2.5],
-         boundary_alpha=[1.0],
+         obstacle_alpha=[10.0],
+         boundary_alpha=[10.0],
          velocity_alpha=[],
          )
 
 # Instantiate dynamics
-dynamics = UnicycleDynamics(state_dim=4, action_dim=2)
+dynamics = UnicycleDynamics()
 
 # Make barrier from map_
 map_ = Map(barriers_info=map_config, dynamics=dynamics, cfg=cfg)
@@ -40,15 +39,14 @@ barrier = MultiBarriers()
 barrier.add_barriers([*pos_barrier, *vel_barrier], infer_dynamics=True)
 
 
-safety_filter = MinIntervInputConstQPSafeControl(
+safety_filter = MinIntervQPSafeControl(
     action_dim=dynamics.action_dim,
-    alpha=lambda x: 1.0 * x,
-    params=AD(slack_gain=200,
-              slacked=True,
+    alpha=lambda x: 0.5 * x,
+    params=AD(slack_gain=1e24,
+              slacked=False,
               use_softplus=False,
               softplus_gain=2.0)
-).assign_dynamics(dynamics=dynamics).assign_state_barrier(barrier=barrier
-                                                          ).assign_control_bounds(low=[-4.0, -1.0], high=[4.0, 1.0])
+).assign_dynamics(dynamics=dynamics).assign_state_barrier(barrier=barrier)
 
 # Goal positions
 goal_pos = torch.tensor([
@@ -74,8 +72,8 @@ trajs = safety_filter.get_safe_optimal_trajs(x0=x0, sim_time=sim_time, timestep=
 print(time() - start_time)
 
 # Rearrange trajs
-# Rearrange trajs
 trajs = [torch.vstack(t.split(dynamics.state_dim)) for t in torch.hstack([tt for tt in trajs])]
+
 
 # Get actions values along the trajs
 actions = []
@@ -85,22 +83,25 @@ min_barriers = []
 min_constraint = []
 for i, traj in enumerate(trajs):
     des_ctrl = lambda x: vectorize_tensors(
-        partial(desired_control, goal_pos=goal_pos[i].repeat(x.shape[0], 1), **control_gains)(x))
+            partial(desired_control, goal_pos=goal_pos[i].repeat(x.shape[0], 1))(x))
     safety_filter.assign_desired_control(
-        desired_control=des_ctrl)
-    start_time = time()
-    actions.append(safety_filter.safe_optimal_control(traj))
-    print("totol_time", time() - start_time)
+        desired_control=des_ctrl
+    )
+    action = safety_filter.safe_optimal_control(traj)
+    hocbf, Lf_hocbf, Lg_hocbf = safety_filter.barrier.get_hocbf_and_lie_derivs(traj.to(torch.float64))
+    constraint = Lf_hocbf.squeeze(-1) + torch.einsum('ijk,ik->ij', Lg_hocbf, action) + 0.5 * hocbf.squeeze(-1)
+    cutoff = (torch.min(constraint, dim=-1).values < -1e-4).nonzero(as_tuple=True)[0]
 
-    for j in range(10):
-        start_time = time()
-        safety_filter.safe_optimal_control(traj[j, :].unsqueeze(0))
-        print(time() - start_time)
+    if cutoff.numel() > 0:
+        cutoff = cutoff.item()
+        traj = traj[:cutoff]  # Cut the trajectory short
+        action = action[:cutoff]  # Cut the corresponding action short
 
+    actions.append(action)
     des_ctrls.append(des_ctrl(traj))
-    h_vals.append(safety_filter.barrier.hocbf(traj))
-    min_barriers.append(safety_filter.barrier.get_min_barrier_at(traj))
-    min_constraint.append(safety_filter.barrier.min_barrier(traj))
+    h_vals.append(map_.barrier.hocbf(traj).detach())
+    min_barriers.append(map_.barrier.get_min_barrier_at(traj))
+    min_constraint.append(map_.barrier.min_barrier(traj))
 
 ############
 #  Plots   #
@@ -125,23 +126,23 @@ contour_plot = ax.contour(X, Y, Z, levels=[0], colors='red')
 from matplotlib.lines import Line2D
 custom_lines = [Line2D([0], [0], color='red', lw=1.5)]
 
-ax.set_xlabel(r'$q_{\rm x}$', fontsize=16)
-ax.set_ylabel(r'$q_{\rm y}$', fontsize=16)
+ax.set_xlabel(r'$q_{\rm x}$', fontsize=14)
+ax.set_ylabel(r'$q_{\rm y}$', fontsize=14)
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
 ax.set_aspect('equal', adjustable='box')  # Maintain equal aspect ratio
-ax.tick_params(axis='x', labelsize=16)  # Font size for x-axis ticks
-ax.tick_params(axis='y', labelsize=16)  # Font size for y-axis ticks
+ax.tick_params(axis='x', labelsize=12)  # Font size for x-axis ticks
+ax.tick_params(axis='y', labelsize=12)  # Font size for y-axis ticks
 ax.set_xticks([-10, -5, 0, 5, 10])
 ax.set_yticks([-10, -5, 0, 5, 10])
 
-
 ax.plot(trajs[0][0, 0], trajs[0][0, 1], 'x', color='blue', markersize=8, label=r'$x_0$')
-for i in range(len(trajs)):
+
+
+for i in range(4):
     ax.plot(goal_pos[i][0], goal_pos[i][1], '*', markersize=10, color='limegreen', label='Goal' if i == 0 else None)
     ax.plot(trajs[i][-1, 0], trajs[i][-1, 1], '+', color='blue', markersize=8, label=r'$x_f$' if i == 0 else None)
     ax.plot(trajs[i][:, 0], trajs[i][:, 1], label='Trajectories' if i == 0 else None, color='black')
-
 
 # Creating the legend
 handles, labels = ax.get_legend_handles_labels()
@@ -158,7 +159,7 @@ ordered_labels = custom_order
 plt.tight_layout()
 
 # Save the contour plot
-plt.savefig(f'figs/Trajectories_Input_Constrained_QP_Safe_Control_{current_time}.png', dpi=600)
+plt.savefig(f'figs/Trajectories_QP_Safe_Control_{current_time}.png', dpi=600)
 plt.show()
 
 # Calculate time array based on the number of data points and timestep
@@ -166,36 +167,40 @@ num_points = trajs[0].shape[0]  # Assuming trajs has the same length for all ele
 time = np.linspace(0.0, (num_points - 1) * timestep, num_points)
 
 # Create subplot for trajs and action variables
-fig, axs = plt.subplots(5, 1, figsize=(8, 10))
+fig, axs = plt.subplots(5, 1, figsize=(8, 8))
 
 # Plot trajs variables
 axs[0].plot(time, trajs[0][:, 0], label=r'$q_{\rm x}$', color='red')
 axs[0].plot(time, trajs[0][:, 1], label=r'$q_{\rm y}$', color='blue')
 axs[0].plot(time, torch.ones(time.shape) * goal_pos[0, 0], label=r'$q_{\rm d, x}$', color='red', linestyle=':')
 axs[0].plot(time, torch.ones(time.shape) * goal_pos[0, 1], label=r'$q_{\rm d, y}$', color='blue', linestyle=':')
-axs[0].legend(loc='lower center', ncol=4, frameon=False, fontsize=14)
+axs[0].legend(loc='lower center', ncol=4, frameon=False, fontsize=12)
 
-axs[0].set_ylabel(r'$q_{\rm x}, q_{\rm y}$', fontsize=16)
+axs[0].set_ylabel(r'$q_{\rm x}, q_{\rm y}$', fontsize=14)
 axs[0].legend(fontsize=14, loc='lower center', ncol=4, frameon=False)
 axs[0].tick_params(axis='x', which='both', bottom=True, top=False, labelbottom=False)
 
 axs[1].plot(time, trajs[0][:, 2], label='v', color='black')
-axs[1].set_ylabel(r'$v$', fontsize=16)
+axs[1].set_ylabel(r'$v$', fontsize=14)
 
 axs[2].plot(time, trajs[0][:, 3], label='theta', color='black')
-axs[2].set_ylabel(r'$\theta$', fontsize=16)
+axs[2].set_ylabel(r'$\theta$', fontsize=14)
 
 # Plot actions
 axs[3].plot(time, actions[0][:, 0], label=r'$u_1$', color='black')
 axs[3].plot(time, des_ctrls[0][:, 0], color='red', linestyle='--', label=r'$u_{{\rm d}_1}$')
-axs[3].legend(loc='upper right', ncol=2, frameon=False, fontsize=14)
-axs[3].set_ylabel(r'$u_1$', fontsize=16)
+axs[3].legend(loc='lower center', ncol=2, frameon=False, fontsize=12)
+
+axs[3].set_ylabel(r'$u_1$', fontsize=14)
 
 axs[4].plot(time, actions[0][:, 1], label=r'$u_2$', color='black')
 axs[4].plot(time, des_ctrls[0][:, 1],  color='red', linestyle='--', label=r'$u_{{\rm d}_2}$')
-axs[4].legend(loc='upper right', ncol=2, frameon=False, fontsize=14)
-axs[4].set_ylabel(r'$u_2$', fontsize=16)
-axs[4].set_xlabel(r'$t~(\rm {s})$', fontsize=16)
+axs[4].legend(loc='lower center', ncol=2, frameon=False, fontsize=12)
+axs[4].set_ylabel(r'$u_2$', fontsize=14)
+
+axs[4].set_xlabel(r'$t~(\rm {s})$', fontsize=14)
+
+
 
 for i in range(4):
     axs[i].tick_params(axis='x', which='both', bottom=True, top=False, labelbottom=False)
@@ -204,35 +209,32 @@ for i in range(4):
 for ax in axs:
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
-    ax.tick_params(labelsize=16)
-    ax.set_xticks([0, 5, 10, 15, 20])
+    ax.tick_params(labelsize=14)
     ax.set_xlim(time[0], time[-1])
-
 
 # Adjust layout and save the combined plot
 plt.subplots_adjust(wspace=0, hspace=0.2)
 plt.tight_layout()
 
-plt.savefig(f'figs/States_Input_Constrained_QP_Safe_Control_{current_time}.png')
+plt.savefig(f'figs/States_QP_Safe_Control_{current_time}.png', dpi=600)
 
 # Show the plots
 plt.show()
 
-
 fig, axs = plt.subplots(3, 1, figsize=(8, 4.5))
 
 # Plot barrier values
-axs[0].plot(time, h_vals[0].min(dim=1).values.squeeze(), color='black')
-axs[0].set_ylabel(r'$\min b_{d_{{\rm c} -1}, i}$', fontsize=16)
+axs[0].plot(time, h_vals[0], color='black')
+axs[0].set_ylabel(r'$h$', fontsize=14)
 
 # Plot barrier values
 axs[1].plot(time, min_barriers[0], color='black')
-axs[1].set_ylabel(r'$\min b_{j, i}$', fontsize=16)
+axs[1].set_ylabel(r'$\min b_{j, i}$', fontsize=14)
 
 axs[2].plot(time, min_constraint[0], color='black')
-axs[2].set_ylabel(r'$\min h_j$', fontsize=16)
+axs[2].set_ylabel(r'$\min h_j$', fontsize=14)
 
-axs[2].set_xlabel(r'$t~(\rm {s})$', fontsize=16)
+axs[2].set_xlabel(r'$t~(\rm {s})$', fontsize=14)
 
 
 for i in range(2):
@@ -241,16 +243,12 @@ for i in range(2):
 for ax in axs:
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
-    ax.tick_params(labelsize=16)
+    ax.tick_params(labelsize=14)
     ax.set_xlim(time[0], time[-1])
-    ax.set_xticks([0, 5, 10, 15, 20])
-    ax.set_yticks([0, 0.5])
-
-
 plt.subplots_adjust(wspace=0, hspace=0.2)
 plt.tight_layout()
 
-plt.savefig(f'figs/Barriers_Input_Constrained_QP_Safe_Control_{current_time}.png', dpi=600)
+plt.savefig(f'figs/Barriers_QP_Safe_Control_{current_time}.png', dpi=600)
 
 # Show the plots
 plt.show()
