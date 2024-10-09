@@ -3,25 +3,35 @@ from hocbf_composition.utils.utils import vectorize_tensors
 
 
 class AffineInControlDynamics:
-    def __init__(self, state_dim, action_dim, params=None, **kwargs):
-        self._state_dim = state_dim
-        self._action_dim = action_dim
+    def __init__(self, params=None, **kwargs):
         self._params = params
+        if "state_dim" in kwargs:
+            self._state_dim = kwargs['state_dim']
+        if "action_dim" in kwargs:
+            self._action_dim = kwargs['action_dim']
+
+    @property
+    def state_dim(self):
+        return self._state_dim
+
+    @property
+    def action_dim(self):
+        return self._action_dim
 
     def f(self, x):
         x = vectorize_tensors(x)
-        assert x.shape[1] == self._state_dim
+        assert x.shape[1] == self.state_dim
         out = self._f(x)
         assert out.shape == x.shape
         return out
 
     def g(self, x):
         x = vectorize_tensors(x)
-        assert x.shape[1] == self._state_dim
+        assert x.shape[1] == self.state_dim
         out = self._g(x)
         assert out.shape[0] == x.shape[0]
-        assert out.shape[-1] == self._action_dim
-        assert out.shape[-2] == self._state_dim
+        assert out.shape[-1] == self.action_dim
+        assert out.shape[-2] == self.state_dim
         return out
 
     def _f(self, x):
@@ -76,23 +86,15 @@ class AffineInControlDynamics:
             raise TypeError("_g must be a callable function")
         self._g = g
 
-    @property
-    def state_dim(self):
-        return self._state_dim
-
-    @property
-    def action_dim(self):
-        return self._action_dim
-
 
 class LowPassFilterDynamics(AffineInControlDynamics):
-    def __init__(self, state_dim, action_dim, params):
+    def __init__(self, params, state_dim, action_dim):
         assert state_dim == action_dim, 'state_dim and action_dim should be the same'
-        super().__init__(state_dim, action_dim, params)
+        super().__init__(params=params, state_dim=state_dim, action_dim=action_dim)
         assert params is not None, 'params should include low pass filter gains'
         assert len(params['gains']) == state_dim, 'gains should be a list of gains of length state_dim'
 
-        self._gains = torch.tensor(params['gains'])
+        self._gains = torch.tensor(params['gains'], dtype=torch.float64)
         self._gains_mat = torch.diag(self._gains)
         self._gains.unsqueeze_(0)
 
