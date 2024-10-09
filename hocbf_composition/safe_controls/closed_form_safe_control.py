@@ -73,6 +73,8 @@ class MinIntervCFSafeControl(BaseMinIntervSafeControl, CFSafeControl):
         x = tensify(x).to(torch.float64)
 
         hocbf, Lf_hocbf, Lg_hocbf = self._barrier.get_hocbf_and_lie_derivs(x)
+        hocbf -= self._params.buffer
+
         u_d = self._desired_control(x)
         omega = Lf_hocbf + torch.einsum('bi,bi->b', Lg_hocbf, u_d).unsqueeze(-1) + self._alpha(hocbf)
         den = torch.einsum('bi,bi->b', Lg_hocbf, Lg_hocbf).unsqueeze(-1) + (
@@ -180,7 +182,7 @@ class InputConstCFSafeControl(CFSafeControl):
                                                          torch.stack([sigma * (dc(x) - of(x)) for dc, of, sigma in
                                                                       zip(desired_control_lie_derivs,
                                                                           ac_out_func_lie_derivs,
-                                                                          self._params.sigma)]).sum(0))
+                                                                          self._params.sigma)]).sum(0)).detach()
 
     def _make_desired_control(self):
         self._desired_control = lambda x: -torch.einsum('bij,bi->bj',
