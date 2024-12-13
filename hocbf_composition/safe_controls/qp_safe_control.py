@@ -103,6 +103,8 @@ class MinIntervQPSafeControl(BaseMinIntervSafeControl, QPSafeControl):
     def assign_desired_control(self, desired_control):
         self._Q = lambda x: 2 * torch.eye(self._action_dim, dtype=torch.float64).repeat(x.shape[0], 1, 1)
         self._c = lambda x: -2 * desired_control(x)
+        self._desired_control = desired_control
+
 
 
 class InputConstQPSafeControl(QPSafeControl):

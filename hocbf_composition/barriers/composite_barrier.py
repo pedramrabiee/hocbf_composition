@@ -63,8 +63,8 @@ class CompositionBarrier(Barrier):
         self._rel_deg = 1
 
         # Define barrier functions and higher-order barrier function as compositions of individual barrier functions
-        self._barrier_funcs = lambda x: torch.hstack([barrier.barrier(x) for barrier in barriers])
-        self._hocbf_func = lambda x: self.compose(rule)(torch.hstack([barrier.hocbf(x) for barrier in barriers]))
+        self._barrier_funcs = lambda x: torch.stack([barrier.barrier(x) for barrier in barriers], dim=-1)
+        self._hocbf_func = lambda x: self.compose(rule)(torch.stack([barrier.hocbf(x) for barrier in barriers], dim=-1))
 
         # Concatenate barrier.barriers for all barrier in barriers. This makes a list of lists.
         self._barriers = [barrier.barriers for barrier in barriers]
