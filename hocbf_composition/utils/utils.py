@@ -285,3 +285,112 @@ def lp_solver(c, G, h):
 
     # Convert solutions to a PyTorch tensor and return
     return torch.tensor(np.array(solutions), dtype=c.dtype, device=c.device)
+
+
+
+class SVM:
+    def __init__(self, cfg):
+        self.cfg = cfg
+        self.support_vectors = None
+        self.support_vector_labels = None
+        self.omega = None
+
+        # Create the kernel function using the factory
+        self.kernel_fn = self._kernel_factory(cfg.kernel_type,
+                                              sigma=cfg.sigma if cfg.kernel_type == 'rbf' and hasattr(
+                                                  cfg, 'sigma') else None,
+                                              degree=cfg.degree if cfg.kernel_type == 'polynomial' and hasattr(
+                                                  cfg, 'degree') else None,
+                                              coef=cfg.coef if cfg.kernel_type == 'polynomial' and hasattr(
+                                                  cfg, 'coef') else None)
+
+
+    def fit(self, x, y):
+        raise NotImplementedError
+
+    def predict(self, x):
+        if self.support_vectors is None:
+            raise ValueError("Model not trained yet")
+        kernel_matrix = self.kernel_fn(x, self.support_vectors)
+        return torch.sign(torch.mm(kernel_matrix, self.omega * self.support_vector_labels) + self.b)
+
+
+    def _kernel_factory(self, func_name, **kwargs):
+        def linear(x1, x2, sigma=None, degree=None, coef=None):
+            return torch.einsum('ik,jk->ij', x1, x2)
+
+        def rbf(x1, x2, sigma=1.0, degree=None, coef=None):
+
+            x1_norm_squared = torch.einsum('ij,ij->i', x1, x1)
+            x2_norm_squared = torch.einsum('ij,ij->i', x2, x2)
+
+            pairwise_sq_dists = x1_norm_squared.unsqueeze(1) + x2_norm_squared.unsqueeze(0) - 2 * torch.einsum(
+                'ik,jk->ij', x1, x2)
+
+            return torch.exp(-pairwise_sq_dists / (2 * sigma ** 2))
+
+
+        def polynomial(x1, x2, sigma=None, degree=3.0, coef=1.0):
+            coef = tensify(coef).to(torch.float64)
+            return (torch.einsum('ik,jk->ij', x1, x2) + coef) ** degree
+
+        kernel_functions = {
+            'linear': linear,
+            'polynomial': polynomial,
+            'rbf': rbf,
+        }
+
+        assert func_name in kernel_functions, "Kernel function method not implemented"
+
+        return partial(kernel_functions[func_name], **kwargs)
+
+    def boundary_func(self, X, y, sv, sv_y, lambdas, b):
+
+        return lambda x: (torch.einsum('ik,ik,ni->nk', lambdas, sv_y, self.kernel_fn(x, sv)).squeeze(-1) + b).unsqueeze(-1)
+
+    def fit(self, X, y, lambdas=None):
+        n_samples, n_features = X.shape
+        kernel_dot = self.kernel_fn(X, X)
+
+        Q = torch.einsum('ik,jk->ij', y, y) * kernel_dot
+        c = -torch.ones(n_samples, dtype=torch.float64)
+
+        G_lower = -torch.eye(n_samples, dtype=torch.float64)
+        h_lower = torch.zeros(n_samples, dtype=torch.float64)
+
+        G_upper = torch.eye(n_samples, dtype=torch.float64)
+        asymmetric_ind = (y == 1).squeeze(-1)
+        G_upper_masked = G_upper[asymmetric_ind]
+
+        h_upper = torch.ones(G_upper_masked.shape[0]) * self.cfg.safe_slack
+
+        G = torch.cat([G_upper_masked, G_lower], dim=0)
+        h = torch.cat([h_upper, h_lower], dim=0)
+
+        A = y.t()
+        b = torch.zeros(1, dtype=torch.float64)
+
+        solvers.options['show_progress'] = False
+        Q_np = Q.numpy()
+        c_np = c.numpy()
+        G_np = G.numpy()
+        h_np = h.numpy()
+        A_np = A.numpy()
+        b_np = b.numpy()
+
+
+        solution = solvers.qp(matrix(Q_np), matrix(c_np),
+                              matrix(G_np), matrix(h_np),
+                              matrix(A_np), matrix(b_np))
+        lambdas = (torch.tensor(np.array(solution['x']), dtype=torch.float64))
+
+
+        # Find support vectors
+        sol_indx = (lambdas > 1e-5).flatten()
+        lambdas = lambdas[sol_indx]
+        sv_y = y[sol_indx]
+        sv = X[sol_indx]
+
+        b = torch.sum(sv_y - torch.sum(self.kernel_fn(sv, sv) * lambdas * sv_y, dim=-1).unsqueeze(-1), dim=0) / sv.shape[0]
+
+        return self.boundary_func(X, y, sv, sv_y, lambdas, b)
