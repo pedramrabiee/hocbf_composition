@@ -86,6 +86,17 @@ class AffineInControlDynamics:
             raise TypeError("_g must be a callable function")
         self._g = g
 
+    @property
+    def state_dim(self):
+        return self._state_dim
+
+    @property
+    def action_dim(self):
+        return self._action_dim
+
+    @property
+    def params(self):
+
 
 class LowPassFilterDynamics(AffineInControlDynamics):
     def __init__(self, params, state_dim, action_dim):

@@ -35,6 +35,11 @@ class Map:
             cfg=self.cfg).assign_barriers_and_rule(barriers=[*self.pos_barriers],
                                                    rule='i',
                                                    infer_dynamics=True)
+        else:
+            self.barrier = SoftCompositionBarrier(
+                cfg=self.cfg).assign_barriers_and_rule(barriers=[*self.pos_barriers],
+                                                       rule='i',
+                                                       infer_dynamics=True)
 
     def get_barriers(self):
         return self.pos_barriers, self.vel_barriers
