@@ -17,7 +17,7 @@ class BackupSafeControl(InputConstQPSafeControl):
         hocbf, Lf_hocbf, Lg_hocbf = self._barrier.get_hocbf_and_lie_derivs(x)
         feas_fact = self._get_feasibility_factor(x, Lf_hocbf, Lg_hocbf, hocbf)
 
-        h_star_vals = self._barrier.get_h_stars
+        h_star_vals = self._barrier.get_h_stars(x)
         if len(self._barrier.backup_policies) > 1:
             ub_vals = torch.stack([self._barrier.backup_policies[i](x) for i in range(len(self._barrier.backup_policies))])
             ub_blend = self._get_backup_blend(h_star_vals, ub_vals)

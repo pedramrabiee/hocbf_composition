@@ -7,17 +7,19 @@ class BackupBarrier(Barrier):
 
     def __init__(self, cfg):
         super(BackupBarrier, self).__init__()
+        self.cfg = cfg
+        self._rel_deg = 1
+
         self._backup_barriers = None
         self._backup_policies = None
         self._state_barrier = None
-        self.cfg = cfg
-        self._rel_deg = 1
-        self.h_star = None
-        self.h_star_argmax= None
-        self.action_num= None
+        self.action_num = None
 
-        self.h_star_values = None
-        self.h_star_argmax = None
+        self.h_star = None
+        self.h_stars = None
+
+        self._last_x = None
+        self._last_h_list = None
 
 
     def assign(self):
@@ -57,6 +59,26 @@ class BackupBarrier(Barrier):
         return self
 
 
+    def _backup_barrier_func(self, x, ret_info=False):
+        trajs = self.get_backup_traj(x).chunk(self.action_num, dim=1)
+        b, m, n = trajs[0].shape
+        h_list = [
+            torch.cat((self._state_barrier.hocbf(traj.reshape(-1, n)).reshape(b, m, -1),
+                       backup_barrier.hocbf(traj[-1, ...]).unsqueeze(0)))
+            for traj, backup_barrier in zip(trajs, self._backup_barriers)]
+        h_values = torch.stack([softmin(hh, self.cfg.softmin_rho, dim=0) for hh in h_list])
+        final_h_val = softmax(h_values, self.cfg.softmax_rho, dim=0)
+        ## Cache the results
+        self._last_x = x
+        self._last_h_list = h_list
+        if not ret_info:
+            return final_h_val
+        else:
+            self.h_stars = torch.stack([torch.amin(hh, dim=0) for hh in h_list])
+            self.h_star =  torch.amax(self.h_stars, dim=0)
+            return dict(h_star=self.h_star, h_stars=self.h_stars, h=final_h_val)
+
+
 
     def make(self):
 
@@ -76,19 +98,7 @@ class BackupBarrier(Barrier):
 
         self.action_num = len(self._backup_policies)
 
-
-
-
-        def backup_barrier_func(x):
-            trajs = self.get_backup_traj(x).chunk(self.action_num, dim=1)
-            h_list = [
-                torch.cat((self._state_barrier.hocbf(traj).unsqueeze(-1), backup_barrier.hocbf(traj[-1,...]).unsqueeze(0)))
-                for traj, backup_barrier in zip(trajs, self._backup_barriers)]
-            h_values = torch.stack([softmin(hh, self.cfg.softmin_rho, dim=0) for hh in h_list])
-            self.h_star_values = torch.stack([torch.amin(hh, dim=0) for hh in h_list])
-            return softmax(h_values, self.cfg.softmax_rho, dim=0)
-
-        self._barrier_func = backup_barrier_func
+        self._barrier_func = self._backup_barrier_func
 
         # make higher-order barrier function
         self._barriers = self._make_hocbf_series(barrier=self.barrier, rel_deg=self._rel_deg, alphas=[])
@@ -108,13 +118,21 @@ class BackupBarrier(Barrier):
         raise NotImplementedError
 
 
-    @property
-    def get_h_stars(self):
-        return self.h_star_values
+    def get_h_stars(self, x):
+        if torch.all(torch.isclose(x, self._last_x)):
+            self.h_stars = torch.stack([torch.amin(hh, dim=0) for hh in self._last_h_list])
+            return self.h_stars
+        else:
+            self.h_stars = self._backup_barrier_func(x, ret_info=True)('h_stars')
+            return self.h_stars
 
-    @property
-    def get_h_star(self):
-        return torch.amax(self.h_star_values, dim=0)
+    def get_h_star(self, x):
+        if torch.all(torch.isclose(x, self._last_x)):
+            self.h_star = torch.amax(self.h_stars, dim=0)
+            return self.h_star
+        else:
+            self.h_star = self._backup_barrier_func(x, ret_info=True)('h_star')
+            return self.h_star
 
     @property
     def backup_policies(self):
