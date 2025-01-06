@@ -6,7 +6,7 @@ from math import pi
 
 
 from hocbf_composition.examples.backup_examples.inv_pend.inv_pend_dynamics import InvertPendDynamics
-from hocbf_composition.examples.backup_examples.inv_pend.map_config import map_config
+from hocbf_composition.examples.backup_examples.inv_pend.map_config import map_config2
 from hocbf_composition.barriers.backup_barrier import BackupBarrier
 from hocbf_composition.utils.make_map import Map
 from hocbf_composition.examples.backup_examples.inv_pend.backup_policies import PendulumBackupControl
@@ -65,7 +65,7 @@ dynamics = InvertPendDynamics()
 
 
 # Make barrier from map_
-map_ = Map(barriers_info=map_config, dynamics=dynamics, cfg=cfg)
+map_ = Map(barriers_info=map_config2, dynamics=dynamics, cfg=cfg)
 
 state_barrier = map_.barrier
 
@@ -126,7 +126,7 @@ for i, traj in enumerate(trajs):
     actions.append(action.detach())
     h_vals.append(safety_filter.barrier.hocbf(traj).detach())
     h_s.append(state_barrier.barrier(traj).detach())
-    h_star.append(safety_filter.barrier.get_h_star.detach())
+    h_star.append(safety_filter.barrier.get_h_star(traj).detach())
 
     feas_factor.append(info['feas_fact'])
     constraints_val.append(info['constraint_val'])

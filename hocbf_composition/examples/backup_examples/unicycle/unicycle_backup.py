@@ -27,7 +27,7 @@ cfg = AD(softmax_rho=50,
          boundary_alpha=[],
          obstacle_alpha=[],
          velocity_alpha=[],
-         horizon=1,
+         horizon=1.0,
          time_steps=0.02,
          method='dopri5',
          epsilon=0.0,
@@ -49,7 +49,7 @@ control_bounds = torch.tensor([[-4.0, 4.0], [-1.0, 1.0]], dtype=torch.float64)
 ub_gain = torch.tensor([[-15.0, 0.0]], dtype=torch.float64)
 dynamics_param = AD(d=1, control_bounds=control_bounds)
 
-control_gains = dict(k1=0.8, k2=0.8)
+control_gains = dict(k1=1.0, k2=0.8)
 
 
 # # Goal positions
@@ -60,8 +60,7 @@ goal_pos = torch.tensor([
 ])
 
 
-
-# goal_pos = torch.tensor([-4.5, 8.0], dtype=torch.float64).unsqueeze(0)
+# goal_pos = torch.tensor([2.0, 4.5], dtype=torch.float64).unsqueeze(0)
 
 # Initial Conditions
 x0 = torch.tensor([[-3.0, -8.5, 0.0, 0.0]], dtype=torch.float64).repeat(goal_pos.shape[0], 1)
@@ -148,7 +147,7 @@ for i, traj in enumerate(trajs):
     actions.append(action)
     h_vals.append(safety_filter.barrier.hocbf(traj).detach())
     h_s.append(state_barrier.hocbf(traj).detach())
-    h_star.append(safety_filter.barrier.get_h_star.detach())
+    h_star.append(safety_filter.barrier.get_h_star(traj).detach())
     des_ctrls.append(des_ctrl(traj))
 
     feas_factor.append(info['feas_fact'])
