@@ -1,5 +1,5 @@
 import torch
-from utils.dynamics import AffineInControlDynamics
+from hocbf_composition.utils.dynamics import AffineInControlDynamics
 
 
 class UnicycleDynamics(AffineInControlDynamics):
