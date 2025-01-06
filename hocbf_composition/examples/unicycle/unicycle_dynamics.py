@@ -18,3 +18,10 @@ class UnicycleDynamics(AffineInControlDynamics):
         return (torch.vstack([torch.zeros(2, 2, dtype=torch.float64),
                               torch.eye(2, dtype=torch.float64)])
                 ).repeat(x.shape[0], 1, 1)
+
+
+    def get_pos(self, x):
+        return x[..., 0:2]
+
+    def get_rot(self, x):
+        return x[..., -1]

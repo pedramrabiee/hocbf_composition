@@ -1,4 +1,5 @@
 from attrdict import AttrDict as AD
+import os
 
 # Make map_ configuration
 map_config = dict(
@@ -12,4 +13,10 @@ map_config = dict(
         ('norm_boundary', AD(center=[0.0, 0.0], size=[10.0, 10.0])),
     ),
     velocity=(2, [-1.0, 9.0]),
+)
+
+current_root = os.getcwd()
+map_path = os.path.join(current_root, 'map.png')
+map_config2 = dict(
+    image=(map_path),
 )
