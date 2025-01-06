@@ -1,7 +1,13 @@
 import torch
 from hocbf_composition.utils.dynamics import AffineInControlDynamics
 
+
 class UnicycleDynamics(AffineInControlDynamics):
+    def __init__(self, params=None, **kwargs):
+        super().__init__(params, **kwargs)
+        self._state_dim = 4
+        self._action_dim = 2
+
     def _f(self, x):
         return torch.stack([x[:, 2] * torch.cos(x[:, 3]),
                             x[:, 2] * torch.sin(x[:, 3]),
@@ -14,6 +20,8 @@ class UnicycleDynamics(AffineInControlDynamics):
                 ).repeat(x.shape[0], 1, 1)
 
 
+    def get_pos(self, x):
+        return x[..., 0:2]
 
-
-
+    def get_rot(self, x):
+        return x[..., -1]

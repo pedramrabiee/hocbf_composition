@@ -31,16 +31,17 @@ class BaseSafeControl:
     def safe_optimal_control(self, x, ret_info=False):
         raise NotImplementedError
 
-    def get_safe_optimal_trajs(self, x0, timestep=0.001, sim_time=4.0, method='dopri5'):
+    def get_safe_optimal_trajs(self, x0, timestep=0.001, sim_time=4.0, intermediate_steps=None, method='dopri5'):
         return get_trajs_from_action_func(x0=x0, dynamics=self._dynamics,
                                           action_func=self.safe_optimal_control,
                                           timestep=timestep, sim_time=sim_time,
                                           method=method)
 
-    def get_safe_optimal_trajs_zoh(self, x0, timestep=0.001, sim_time=4.0, method='dopri5'):
+    def get_safe_optimal_trajs_zoh(self, x0, timestep=0.001, sim_time=4.0, intermediate_steps=2, method='dopri5'):
         return get_trajs_from_action_func_zoh(x0=x0, dynamics=self._dynamics,
                                               action_func=self.safe_optimal_control,
                                               timestep=timestep, sim_time=sim_time,
+                                              intermediate_steps=intermediate_steps,
                                               method=method)
 
     @property
@@ -56,3 +57,16 @@ class BaseMinIntervSafeControl(BaseSafeControl):
     def assign_cost(self, Q, c):
         raise ('Use assign_desired_control to assign desired control.'
                ' The min intervention cost is automatically assigned.')
+
+
+    def get_desired_control_trajs(self, x0, timestep=0.001, sim_time=4.0, method='dopri5'):
+        return get_trajs_from_action_func(x0=x0, dynamics=self._dynamics,
+                                          action_func=self._desired_control,
+                                          timestep=timestep, sim_time=sim_time,
+                                          method=method)
+
+    def get_desired_control_trajs_zoh(self, x0, timestep=0.001, sim_time=4.0, method='dopri5'):
+        return get_trajs_from_action_func_zoh(x0=x0, dynamics=self._dynamics,
+                                              action_func=self._desired_control,
+                                              timestep=timestep, sim_time=sim_time,
+                                              method=method)

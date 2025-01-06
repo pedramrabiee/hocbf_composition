@@ -89,33 +89,33 @@ class Barrier:
         grad_req = x.requires_grad
         x.requires_grad_()
         hocbf = self.hocbf(x)
-        hocbf_deriv = [grad(fval, x, retain_graph=True)[0] for fval in hocbf.sum(0)]
+        hocbf_deriv = [grad(fval, x, create_graph=True)[0] for fval in hocbf.sum(0)]
         x.requires_grad_(requires_grad=grad_req)
         Lf_hocbf = lie_deriv_from_values(hocbf_deriv, self._dynamics.f(x))
         Lg_hocbf = lie_deriv_from_values(hocbf_deriv, self._dynamics.g(x))
-        return hocbf.detach(), Lf_hocbf, Lg_hocbf
+        return hocbf.detach(), Lf_hocbf.detach(), Lg_hocbf.detach()
 
     def get_hocbf_and_lie_derivs_v2(self, x):
         # For a more optimized version use get_hocbf_and_lie_derivs
-        return self.hocbf(x), self.Lf_hocbf(x), self.Lg_hocbf(x)
+        return self.hocbf(x).detach(), self.Lf_hocbf(x), self.Lg_hocbf(x)
 
     def Lf_hocbf(self, x):
         """
         Compute the Lie derivative of the highest-order barrier function with respect to the system dynamics f.
         """
-        return lie_deriv(x, self.hocbf, self._dynamics.f)
+        return lie_deriv(x, self.hocbf, self._dynamics.f).detach()
 
     def Lg_hocbf(self, x):
         """
         Compute the Lie derivative of the highest-order barrier function with respect to the system dynamics g.
         """
-        return lie_deriv(x, self.hocbf, self._dynamics.g)
+        return lie_deriv(x, self.hocbf, self._dynamics.g).detach()
 
     def compute_barriers_at(self, x):
         """
         Compute barrier values at a given trajs x.
         """
-        return [apply_and_batchize(func=barrier, x=x) for barrier in self.barriers_flatten]
+        return [apply_and_batchize(func=barrier, x=x).detach() for barrier in self.barriers_flatten]
 
     def get_min_barrier_at(self, x):
         """
