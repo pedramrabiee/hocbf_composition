@@ -58,7 +58,7 @@ backup_barriers = [Barrier().assign(barrier_func=func,
                                  rel_deg=1,
                                  alphas=[]).assign_dynamics(dynamics) for func in backup_barrier_functional]
 
-fwd_barrier = (BackupBarrier(cfg).assign_state_barrier(state_barrier).assign_backup_policies(backup_controls)
+fwd_barrier = (BackupBarrier(cfg).assign_state_barrier([state_barrier]).assign_backup_policies(backup_controls)
            .assign_backup_barrier(backup_barriers).assign_dynamics(dynamics).make())
 
 safety_filter = (MinIntervBackupSafeControl(

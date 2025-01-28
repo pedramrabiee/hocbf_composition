@@ -1,5 +1,6 @@
 import torch
 from hocbf_composition.barriers.barrier import Barrier
+from hocbf_composition.barriers.composite_barrier import SoftCompositionBarrier
 from hocbf_composition.utils.utils import *
 
 
@@ -28,8 +29,11 @@ class BackupBarrier(Barrier):
 
     def assign_state_barrier(self, state_barrier):
 
-        assert isinstance(state_barrier, Barrier), 'state_barrier must be Barrier'
-        self._state_barrier = state_barrier
+        assert isinstance(state_barrier, list), 'state_barrier must be List'
+        self._state_barrier = SoftCompositionBarrier(
+            cfg=self.cfg).assign_barriers_and_rule(barriers=[*state_barrier],
+                                                   rule='i',
+                                                   infer_dynamics=True)
         return self
 
 
@@ -62,6 +66,7 @@ class BackupBarrier(Barrier):
     def _backup_barrier_func(self, x, ret_info=False):
         trajs = self.get_backup_traj(x).chunk(self.action_num, dim=1)
         b, m, n = trajs[0].shape
+        self._state_barrier.hocbf(trajs[0].reshape(-1, n))
         h_list = [
             torch.cat((self._state_barrier.hocbf(traj.reshape(-1, n)).reshape(b, m, -1),
                        backup_barrier.hocbf(traj[-1, ...]).unsqueeze(0)))
