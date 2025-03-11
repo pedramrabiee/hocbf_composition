@@ -96,6 +96,7 @@ class AffineInControlDynamics:
 
     @property
     def params(self):
+        return self._params
 
 
 class LowPassFilterDynamics(AffineInControlDynamics):

@@ -1,7 +1,7 @@
 from hocbf_composition.examples.unicycle.unicycle_desired_control import desired_control
 from hocbf_composition.examples.unicycle.map_config import map_config
 from hocbf_composition.examples.unicycle.unicycle_dynamics import UnicycleDynamics
-from utils.dynamics import LowPassFilterDynamics
+from hocbf_composition.utils.dynamics import LowPassFilterDynamics
 from hocbf_composition.barriers.barrier import Barrier
 from hocbf_composition.safe_controls.closed_form_safe_control import MinIntervInputConstCFSafeControl
 from attrdict import AttrDict as AD
